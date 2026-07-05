@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from '@/api/axios.js';
+import { getSensorHealth } from '@/api/sensors.api.js';
 import L from 'leaflet';
 import 'leaflet.heat';
 import MapControls from '@/components/ui/MapControls.jsx';
@@ -36,6 +37,7 @@ const redIcon = createCustomIcon('red');
 const orangeIcon = createCustomIcon('orange');
 const yellowIcon = createCustomIcon('yellow');
 const greenIcon = createCustomIcon('green');
+const greyIcon = createCustomIcon('grey');
 
 // Heatmap Layer Component
 const HeatmapLayer = ({ points }) => {
@@ -72,7 +74,26 @@ const MapViewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [liveTrucks, setLiveTrucks] = useState({});
+  const [sensorHealth, setSensorHealth] = useState({});
   const { socket } = useSocket();
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await getSensorHealth();
+        const healthMap = {};
+        if (res.data?.data) {
+          res.data.data.forEach(h => {
+             healthMap[h.apartmentId] = h;
+          });
+        }
+        setSensorHealth(healthMap);
+      } catch (err) {
+        console.error('Failed to load sensor health:', err);
+      }
+    };
+    fetchHealth();
+  }, []);
 
   useEffect(() => {
     const fetchGeo = async () => {
@@ -152,11 +173,23 @@ const MapViewPage = () => {
             
             // Determine icon based on layer and properties
             let icon = blueIcon;
+            let fillLevel = null;
             if (activeLayer === 'violations') {
               const priority = feature.properties.priority;
               icon = (priority === 'critical' || priority === 'high') ? redIcon 
                    : (priority === 'medium') ? orangeIcon 
                    : yellowIcon;
+            } else if (activeLayer === 'apartments') {
+              const aptId = feature.properties._id || feature.properties.id;
+              const health = sensorHealth[aptId];
+              if (health && health.fillLevelPercent != null) {
+                fillLevel = health.fillLevelPercent;
+                if (fillLevel > 70) icon = redIcon;
+                else if (fillLevel >= 30) icon = orangeIcon;
+                else icon = greenIcon;
+              } else {
+                icon = greyIcon;
+              }
             }
 
             return (
@@ -169,6 +202,13 @@ const MapViewPage = () => {
                       <div className="text-sm text-gray-600">
                         <p className="flex items-center gap-1 mb-1"><MapPin className="w-3 h-3"/> {feature.properties.address}</p>
                         <p className="flex items-center gap-1"><Building2 className="w-3 h-3"/> {feature.properties.unitCount} Units</p>
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          {fillLevel != null ? (
+                            <p className="font-medium text-gray-900">Bin Fill Level: {Math.round(fillLevel)}%</p>
+                          ) : (
+                            <p className="text-xs text-gray-500">No Sensor Data</p>
+                          )}
+                        </div>
                       </div>
                     )}
 

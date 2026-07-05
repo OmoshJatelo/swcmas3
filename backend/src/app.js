@@ -29,8 +29,14 @@ const auditRoutes = require('./routes/audit.routes');
 const mapRoutes = require('./routes/map.routes');
 const residentVerificationRoutes = require('./routes/residentVerification.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
+const sensorRoutes = require('./routes/sensor.routes');
 
 const app = express();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date() });
+});
 
 // Database connection
 connectDB();
@@ -54,7 +60,18 @@ anomalyService.runDetections().catch(e => logger.error('Initial anomaly detectio
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: config.allowedOrigins, credentials: true }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (ESP32, curl, server-to-server)
+    if (!origin) return cb(null, true);
+    // Allow configured origins
+    if (config.allowedOrigins.includes(origin)) return cb(null, true);
+    // Allow ngrok tunnels
+    if (/\.ngrok(-free)?\.app$/.test(origin) || /\.ngrok\.io$/.test(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -63,6 +80,10 @@ app.use(compression());
 app.use(mongoSanitize());
 app.use(xss());
 app.use(rateLimiter);
+
+// Serve uploaded files in local dev mode
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // API prefix
 app.use(config.apiPrefix, (req, res, next) => {
@@ -85,6 +106,7 @@ app.use(`${config.apiPrefix}/audit`, auditRoutes);
 app.use(`${config.apiPrefix}/maps`, mapRoutes);
 app.use(`${config.apiPrefix}/verifications`, residentVerificationRoutes);
 app.use(`${config.apiPrefix}/invoices`, invoiceRoutes);
+app.use(`${config.apiPrefix}/sensors`, sensorRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

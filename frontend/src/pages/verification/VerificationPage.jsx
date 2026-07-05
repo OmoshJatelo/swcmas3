@@ -144,6 +144,39 @@ const VerificationPage = () => {
         title="Verification Response"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
+          {selectedId.current && (
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Sensor Data Analysis</h3>
+              {(() => {
+                const col = data.verifications.find(v => v._id === selectedId.current);
+                if (!col || col.fillDeltaPercent == null) {
+                  return <p className="text-sm text-gray-500">Awaiting sensor data</p>;
+                }
+                const delta = col.fillDeltaPercent;
+                let color = 'text-green-600 dark:text-green-400';
+                let bg = 'bg-green-100 dark:bg-green-500/20';
+                if (delta < 30) {
+                  color = 'text-red-600 dark:text-red-400';
+                  bg = 'bg-red-100 dark:bg-red-500/20';
+                } else if (delta < 60) {
+                  color = 'text-amber-600 dark:text-amber-400';
+                  bg = 'bg-amber-100 dark:bg-amber-500/20';
+                }
+                return (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className={`px-4 py-2 rounded-lg font-bold ${bg} ${color}`}>
+                      ↓ {Math.round(delta)}% drop detected
+                    </div>
+                    <div className="text-xs text-gray-500 text-right">
+                      <p>Pre: {col.preSensorReadingId ? 'Recorded' : 'N/A'}</p>
+                      <p>Post: {col.postSensorReadingId ? 'Recorded' : 'N/A'}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Was the collection completed as scheduled?

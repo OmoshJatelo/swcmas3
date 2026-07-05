@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 const path = require('path');
 
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const config = {
   env: process.env.NODE_ENV || 'development',
@@ -93,6 +93,8 @@ const config = {
     'collection_gap',
     'collector_anomaly',
     'collector_performance',
+    'sensor_tamper',
+    'no_sensor_data',
   ],
 
   anomalySeverities: ['low', 'medium', 'high', 'critical'],

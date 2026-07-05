@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getAdminStats } from '@/api/dashboard.api.js';
+import { getSensorHealth } from '@/api/sensors.api.js';
 import StatCard from '@/components/ui/StatCard.jsx';
 import LineChartCard from '@/components/ui/LineChartCard.jsx';
 import DataTable from '@/components/ui/DataTable.jsx';
@@ -7,12 +8,13 @@ import Badge from '@/components/ui/Badge.jsx';
 import LoadingSpinner from '@/components/ui/LoadingSpinner.jsx';
 import EmptyState from '@/components/ui/EmptyState.jsx';
 import TrustScoreGauge from '@/components/ui/TrustScoreGauge.jsx';
-import { Users, Building2, Truck, FileWarning, AlertTriangle } from 'lucide-react';
+import { Users, Building2, Truck, FileWarning, AlertTriangle, Activity } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sensorHealth, setSensorHealth] = useState({ total: 0, online: 0, offline: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -25,7 +27,19 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
+    const fetchHealth = async () => {
+      try {
+        const res = await getSensorHealth();
+        const healthData = res.data?.data || [];
+        const online = healthData.filter(h => h.status === 'online').length;
+        const offline = healthData.filter(h => h.status === 'offline').length;
+        setSensorHealth({ total: healthData.length, online, offline });
+      } catch (e) {
+        console.error(e);
+      }
+    };
     fetchStats();
+    fetchHealth();
   }, []);
 
   if (loading) return <div className="h-full flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
@@ -50,11 +64,28 @@ const AdminDashboard = () => {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">County-wide waste management performance</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard title="Total Users" value={stats.userCount} icon={Users} />
         <StatCard title="Registered Properties" value={stats.apartmentCount} icon={Building2} />
         <StatCard title="Total Collections" value={stats.collectionCount} icon={Truck} />
         <StatCard title="Total Complaints" value={stats.complaintCount} icon={FileWarning} />
+        <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-brand-50 dark:bg-brand-500/10 rounded-xl text-brand-600 dark:text-brand-400">
+              <Activity className="w-6 h-6" />
+            </div>
+            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Sensor Health</h3>
+          </div>
+          <div className="mt-4">
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{sensorHealth.total}</p>
+            <div className="flex items-center gap-3 mt-2 text-sm">
+              <span className="text-emerald-500 font-medium">{sensorHealth.online} Online</span>
+              <a href="/anomalies?type=no_sensor_data" className="text-red-500 hover:text-red-600 font-medium hover:underline cursor-pointer">
+                {sensorHealth.offline} Offline
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -7,6 +7,7 @@ const verificationScoreSchema = new mongoose.Schema({
   landlord: { type: Number, default: 0, max: 20 },
   resident: { type: Number, default: 0, max: 20 },
   image: { type: Number, default: 0, max: 20 },
+  sensor: { type: Number, default: 0, max: 20 },
   total: { type: Number, default: 0, max: 100 },
 }, { _id: false });
 
@@ -43,6 +44,10 @@ const collectionSchema = new mongoose.Schema(
     },
     beforePhoto: { type: String },
     afterPhoto: { type: String },
+    preSensorReadingId: { type: mongoose.Schema.Types.ObjectId, ref: 'SensorReading' },
+    postSensorReadingId: { type: mongoose.Schema.Types.ObjectId, ref: 'SensorReading' },
+    fillDeltaPercent: { type: Number },
+    sensorVerified: { type: Boolean, default: false },
     verificationScore: {
       type: verificationScoreSchema,
       default: () => ({}),

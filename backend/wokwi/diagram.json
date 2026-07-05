@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "SWCMAS",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-v1", "id": "esp32", "top": 200, "left": 300, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "ultrasonic",
+      "top": 50,
+      "left": 100,
+      "attrs": { "distance": "15" }
+    },
+    { "type": "wokwi-led", "id": "ledRed", "top": 54, "left": 349.4, "attrs": { "color": "red" } },
+    {
+      "type": "wokwi-led",
+      "id": "ledGreen",
+      "top": 54,
+      "left": 397.4,
+      "attrs": { "color": "green" }
+    },
+    { "type": "wokwi-resistor", "id": "r1", "top": 80, "left": 350, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 80, "left": 400, "attrs": { "value": "220" } }
+  ],
+  "connections": [
+    [ "ultrasonic:VCC", "esp32:3V3", "red", [] ],
+    [ "ultrasonic:GND", "esp32:GND.1", "black", [] ],
+    [ "ultrasonic:TRIG", "esp32:D5", "orange", [] ],
+    [ "ultrasonic:ECHO", "esp32:D18", "yellow", [] ],
+    [ "esp32:D2", "r1:1", "green", [] ],
+    [ "r1:2", "ledGreen:A", "green", [] ],
+    [ "ledGreen:K", "esp32:GND.2", "black", [] ],
+    [ "esp32:D4", "r2:1", "red", [] ],
+    [ "r2:2", "ledRed:A", "red", [] ],
+    [ "ledRed:K", "esp32:GND.3", "black", [] ]
+  ],
+  "serialMonitor": { "display": "always", "newline": "lf" },
+  "dependencies": {
+    "bblanchon/ArduinoJson": "^7.1.0"
+  }
+}

@@ -3,6 +3,8 @@ const Complaint = require('../models/Complaint');
 const Collection = require('../models/Collection');
 const Apartment = require('../models/Apartment');
 const User = require('../models/User');
+const SensorReading = require('../models/SensorReading');
+const sensorService = require('./sensor.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
@@ -148,6 +150,48 @@ const runDetections = async () => {
           details: { disputeRate, totalCollections: item.totalCollections, disputedCollections: item.disputedCollections },
         });
       }
+    }
+  }
+
+  // 6. Sensor tamper detection
+  const readings = await SensorReading.aggregate([
+    { $sort: { apartment: 1, recordedAt: 1 } },
+    {
+      $group: {
+        _id: '$apartment',
+        readings: { $push: { fill: '$fillLevelPercent', at: '$recordedAt' } }
+      }
+    }
+  ]);
+  for (const aptReadings of readings) {
+    const r = aptReadings.readings;
+    for (let i = 1; i < r.length; i++) {
+      const delta = r[i].fill - r[i - 1].fill;
+      if (delta > 40) {
+        await createAlertIfNotExists({
+          type: 'sensor_tamper',
+          severity: 'high',
+          entityType: 'Apartment',
+          entityId: aptReadings._id,
+          description: `Sensor fill level jumped +${delta.toFixed(1)}% - possible tamper`,
+          details: { delta, at: r[i].at },
+        });
+      }
+    }
+  }
+
+  // 7. No sensor data
+  const healthResults = await sensorService.checkSensorHealth();
+  for (const h of healthResults) {
+    if (h.status === 'offline') {
+      await createAlertIfNotExists({
+        type: 'no_sensor_data',
+        severity: 'medium',
+        entityType: 'Apartment',
+        entityId: h.apartmentId,
+        description: `No sensor readings received for over 24 hours`,
+        details: { lastSeenAt: h.lastSeenAt },
+      });
     }
   }
 

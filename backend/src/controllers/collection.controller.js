@@ -42,7 +42,11 @@ const create = async (req, res, next) => {
 // Start collection (collector) – expects beforePhoto uploaded via Cloudinary
 const start = async (req, res, next) => {
   try {
-    const beforePhotoUrl = req.file ? req.file.path : undefined;
+    let beforePhotoUrl;
+    if (req.file) {
+      // Cloudinary returns .path as a full URL; disk storage returns a local file path
+      beforePhotoUrl = req.file.path.startsWith('http') ? req.file.path : `/uploads/${req.file.filename}`;
+    }
     const collection = await collectionService.startCollection(
       req.params.id,
       req.body,
@@ -57,7 +61,10 @@ const start = async (req, res, next) => {
 // Complete collection (collector) – expects afterPhoto upload
 const complete = async (req, res, next) => {
   try {
-    const afterPhotoUrl = req.file ? req.file.path : undefined;
+    let afterPhotoUrl;
+    if (req.file) {
+      afterPhotoUrl = req.file.path.startsWith('http') ? req.file.path : `/uploads/${req.file.filename}`;
+    }
     const collection = await collectionService.completeCollection(
       req.params.id,
       req.body,

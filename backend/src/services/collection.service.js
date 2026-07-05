@@ -77,18 +77,27 @@ const completeCollection = async (id, completeData, afterPhotoUrl) => {
   collection.timeSpentMinutes = Math.round(diffMs / 60000);
   await collection.save();
 
-  // --- Computer Vision Mock Auto-Verification ---
-  // Simulate AI analyzing the before/after photos for waste clearance
-  const aiVisionConfidence = Math.random() * 100;
+  // --- Sensor-Based Auto-Verification ---
+  const sensorService = require('./sensor.service');
+  const sensorResult = await sensorService.detectCollectionFromSensor(collection._id);
   let autoVerified = false;
   
-  if (collection.beforePhoto && collection.afterPhoto && aiVisionConfidence > 85) {
-    // Automatically verify
-    await module.exports.verifyCollection(collection._id, { verificationStatus: 'verified' }, null);
-    autoVerified = true;
-    
-    // Log audit event for AI Auto-verification
-    require('../utils/logger').info(`AI Auto-Verified collection ${collection._id} with confidence ${Math.round(aiVisionConfidence)}%`);
+  if (sensorResult.detected) {
+    collection.preSensorReadingId = sensorResult.preSensorReadingId;
+    collection.postSensorReadingId = sensorResult.postSensorReadingId;
+    collection.fillDeltaPercent = sensorResult.fillDelta;
+    collection.sensorVerified = true;
+    await collection.save();
+
+    if (sensorResult.sensorScore === 20) {
+      await module.exports.verifyCollection(collection._id, { verificationStatus: 'verified' }, null);
+      autoVerified = true;
+      require('../utils/logger').info(`Sensor auto-verified collection ${collection._id} - fill delta ${sensorResult.fillDelta}%`);
+    } else {
+      require('../utils/logger').info(`Sensor partial detection for collection ${collection._id} - fill delta ${sensorResult.fillDelta}%`);
+    }
+  } else {
+    require('../utils/logger').warn(`Sensor data insufficient for collection ${collection._id}: ${sensorResult.reason}`);
   }
 
   // Notify landlord that collection is completed (if not auto-verified)
@@ -149,22 +158,21 @@ const verifyCollection = async (id, { verificationStatus }, verifierId) => {
     residentScore = Math.max(0, 20 - (recentComplaints * 10));
   }
 
-  // Image analysis score - 10 points if both photos are present, 20 if they are distinct and valid (placeholder for AI)
-  let imageScore = 0;
-  if (collection.beforePhoto && collection.afterPhoto) {
-    imageScore = 20; // Assuming both photos present indicates compliance for now. Can integrate AI later.
-  } else if (collection.beforePhoto || collection.afterPhoto) {
-    imageScore = 10;
-  }
+  // Sensor analysis score
+  const sensorService = require('./sensor.service');
+  const sensorResult = await sensorService.detectCollectionFromSensor(collection._id);
+  const sensorScore = collection.sensorVerified
+    ? (sensorResult?.sensorScore ?? 20)
+    : 0;
 
-  const totalScore = Math.round(gpsScore + timeScore + landlordScore + residentScore + imageScore);
+  const totalScore = Math.round(gpsScore + timeScore + landlordScore + residentScore + sensorScore);
 
   collection.verificationScore = {
     gps: Math.round(gpsScore),
     timeSpent: Math.round(timeScore),
     landlord: landlordScore,
     resident: residentScore,
-    image: imageScore,
+    sensor: sensorScore,
     total: totalScore,
   };
   collection.verificationStatus = verificationStatus;

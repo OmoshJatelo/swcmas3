@@ -44,6 +44,10 @@ export const SocketProvider = ({ children }) => {
         ), { icon: '⚠️', duration: 6000 });
       });
 
+      newSocket.on('sensor_reading', (reading) => {
+        window.dispatchEvent(new CustomEvent('sensor_reading_update', { detail: reading }));
+      });
+
       return () => {
         newSocket.disconnect();
       };

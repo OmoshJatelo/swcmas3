@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.git
+.env
+.DS_Store
+uploads
+coverage
+mongo_data
+docker-compose.yml
+Dockerfile
+README.md
