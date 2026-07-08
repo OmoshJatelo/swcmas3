@@ -126,3 +126,4 @@ describe('Apartments — GET /apartments/:id', () => {
     expect(res.status).toBe(404);
   });
 });
+//to add direct mapping for easier addition of apartments//
