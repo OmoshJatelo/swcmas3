@@ -68,6 +68,23 @@ const completeCollection = async (id, completeData, afterPhotoUrl) => {
   if (collection.status !== 'in_progress') {
     throw new ApiError(400, 'Collection is not in progress');
   }
+
+  // --- Sensor-Based Fill Level Check (< 20% threshold) ---
+  const sensorService = require('./sensor.service');
+  const apartmentId = collection.apartment;
+  if (apartmentId) {
+    const latestSensor = await sensorService.getLatestReading(apartmentId);
+    if (latestSensor && latestSensor.fillLevelPercent !== null && latestSensor.fillLevelPercent !== undefined) {
+      if (latestSensor.fillLevelPercent >= 20) {
+        const currentFill = Math.round(latestSensor.fillLevelPercent);
+        throw new ApiError(
+          400,
+          `Cannot finish collection: Sensor fill level must be less than 20% full. Current fill level is ${currentFill}%.`
+        );
+      }
+    }
+  }
+
   collection.endTime = new Date();
   collection.endLocation = completeData.endLocation;
   collection.afterPhoto = afterPhotoUrl;

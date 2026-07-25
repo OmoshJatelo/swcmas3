@@ -1,35 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, CheckCircle, ArrowRight, X, Activity } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MapPin, CheckCircle, ArrowRight, X, Activity, AlertTriangle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { startCollection, completeCollection } from '@/api/collections.api.js';
 import { getLatestSensorReading } from '@/api/sensors.api.js';
 import LoadingSpinner from '@/components/ui/LoadingSpinner.jsx';
 import Badge from '@/components/ui/Badge.jsx';
+import { useSocket } from '@/context/SocketContext.jsx';
 
 const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(collection?.status === 'in_progress' ? 3 : 1);
   const [loading, setLoading] = useState(false);
   
   const [location, setLocation] = useState(null);
   
   const [sensorReading, setSensorReading] = useState(null);
   const [sensorLoading, setSensorLoading] = useState(true);
+  const [sensorAlert, setSensorAlert] = useState(null);
+
+  const { socket } = useSocket();
+
+  const apartmentId = collection.apartment?._id || collection.apartment;
+
+  const fetchSensor = useCallback(async () => {
+    if (!apartmentId) return null;
+    try {
+      setSensorLoading(true);
+      const res = await getLatestSensorReading(apartmentId);
+      const data = res.data?.data;
+      setSensorReading(data);
+      if (data && data.fillLevelPercent !== null && data.fillLevelPercent !== undefined) {
+        if (data.fillLevelPercent < 20) {
+          setSensorAlert(null);
+        }
+      }
+      return data;
+    } catch (e) {
+      console.error('Failed to fetch sensor reading:', e);
+      return null;
+    } finally {
+      setSensorLoading(false);
+    }
+  }, [apartmentId]);
 
   useEffect(() => {
-    const fetchSensor = async () => {
-      try {
-        const res = await getLatestSensorReading(collection.apartment._id);
-        setSensorReading(res.data?.data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setSensorLoading(false);
-      }
-    };
-    if (collection.apartment?._id) {
+    fetchSensor();
+
+    // Auto-poll every 4 seconds to catch Wokwi telemetry updates
+    const pollInterval = setInterval(() => {
       fetchSensor();
+    }, 4000);
+
+    // Socket listener for real-time sensor updates
+    if (socket) {
+      const handleSensorReading = (data) => {
+        const targetAptId = typeof data.apartment === 'object' ? data.apartment?._id : data.apartment;
+        if (targetAptId === apartmentId) {
+          setSensorReading(data);
+          if (data.fillLevelPercent !== null && data.fillLevelPercent < 20) {
+            setSensorAlert(null);
+          }
+        }
+      };
+      socket.on('sensor_reading', handleSensorReading);
+
+      return () => {
+        clearInterval(pollInterval);
+        socket.off('sensor_reading', handleSensorReading);
+      };
     }
-  }, [collection.apartment]);
+
+    return () => clearInterval(pollInterval);
+  }, [fetchSensor, socket, apartmentId]);
 
   // Haversine distance helper (km)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -80,11 +121,11 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
   };
 
   const handleStart = async () => {
-    if (!location) return toast.error('Please verify location first');
+    if (!location && step === 1) return toast.error('Please verify location first');
     
     setLoading(true);
     try {
-      await startCollection(collection._id, { startLocation: location });
+      await startCollection(collection._id, { startLocation: location || { lat: 0, lng: 0 } });
       toast.success('Collection started');
       setStep(3); // Move to completion step
     } catch (e) {
@@ -96,8 +137,24 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
 
   const handleComplete = async () => {
     setLoading(true);
+    setSensorAlert(null);
+
     try {
-      // Get current location for endLocation
+      // 1. Fetch latest sensor reading directly from DB to verify fill level
+      const latestReading = await fetchSensor();
+
+      if (latestReading && latestReading.fillLevelPercent !== null && latestReading.fillLevelPercent !== undefined) {
+        if (latestReading.fillLevelPercent >= 20) {
+          const currentFill = Math.round(latestReading.fillLevelPercent);
+          const errorMsg = `Cannot complete collection: Sensor fill level must be less than 20% to finish. Current fill level is ${currentFill}%.`;
+          setSensorAlert(errorMsg);
+          toast.error(errorMsg, { duration: 6000 });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Get current location for endLocation
       const endLoc = await new Promise((resolve) => {
         if (!navigator.geolocation) {
           resolve(location || { lat: 0, lng: 0 });
@@ -110,23 +167,26 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
         );
       });
 
+      // 3. Complete collection
       await completeCollection(collection._id, { endLocation: endLoc });
-      toast.success('Collection completed successfully!');
+      toast.success('Collection completed successfully! Sensor verified <20% full.');
       onComplete();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to complete collection');
+      const msg = e?.response?.data?.message || 'Failed to complete collection';
+      setSensorAlert(msg);
+      toast.error(msg, { duration: 6000 });
     } finally {
       setLoading(false);
     }
   };
 
   const renderFillGauge = () => {
-    if (sensorLoading) return <div className="flex justify-center p-4"><LoadingSpinner size="sm" /></div>;
+    if (sensorLoading && !sensorReading) return <div className="flex justify-center p-4"><LoadingSpinner size="sm" /></div>;
     if (!sensorReading || sensorReading.fillLevelPercent === null || sensorReading.status === 'no_data') {
       return (
-        <div className="flex flex-col items-center justify-center p-4 bg-red-50 dark:bg-red-500/10 rounded-xl mb-6 border border-red-200 dark:border-red-500/20">
-          <Activity className="w-8 h-8 text-red-500 mb-2 opacity-50" />
-          <span className="text-red-600 dark:text-red-400 font-medium">No sensor data — contact admin</span>
+        <div className="flex flex-col items-center justify-center p-4 bg-amber-50 dark:bg-amber-500/10 rounded-xl mb-6 border border-amber-200 dark:border-amber-500/20">
+          <Activity className="w-8 h-8 text-amber-500 mb-2 opacity-50" />
+          <span className="text-amber-700 dark:text-amber-400 font-medium">No live sensor data found for this bin</span>
         </div>
       );
     }
@@ -134,19 +194,30 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
     const fill = sensorReading.fillLevelPercent;
     let colorClass = 'bg-emerald-500';
     let badgeColor = 'success';
-    if (fill > 70) {
+    if (fill >= 70) {
       colorClass = 'bg-red-500';
       badgeColor = 'danger';
-    } else if (fill >= 30) {
+    } else if (fill >= 20) {
       colorClass = 'bg-amber-500';
       badgeColor = 'warning';
     }
 
     return (
       <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-slate-800 rounded-2xl mb-6 border border-gray-200 dark:border-slate-700">
-        <div className="flex items-center gap-2 mb-4">
-          <Activity className="w-5 h-5 text-gray-400" />
-          <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Live Sensor Data</h4>
+        <div className="flex items-center justify-between w-full mb-4">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-brand-500" />
+            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Live Bin Sensor Reading</h4>
+          </div>
+          <button 
+            type="button"
+            onClick={fetchSensor} 
+            disabled={sensorLoading}
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+            title="Refresh sensor reading"
+          >
+            <RefreshCw className={`w-4 h-4 ${sensorLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         
         <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-8 mb-3 overflow-hidden relative shadow-inner">
@@ -157,18 +228,24 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
         </div>
         
         <div className="flex justify-between w-full text-xs text-gray-500 font-medium">
-          <span>Empty</span>
+          <span>0% (Empty)</span>
           {sensorReading.recordedAt && (
-            <span>Updated: {new Date(sensorReading.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>Last Updated: {new Date(sensorReading.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           )}
-          <span>Full</span>
+          <span>100% (Full)</span>
         </div>
         
-        <div className="mt-4">
+        <div className="mt-4 flex items-center gap-2">
           <Badge variant={badgeColor}>
-            {fill < 30 ? 'Low Volume' : fill > 70 ? 'Critical Volume' : 'Moderate Volume'}
+            {fill < 20 ? 'Empty (<20%) - Allowed to Finish' : fill >= 70 ? 'Critical Volume' : 'Moderate Volume (>=20%)'}
           </Badge>
         </div>
+
+        {fill >= 20 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center font-medium">
+            ⚠️ Bin fill must drop below 20% before you can finish collection.
+          </p>
+        )}
       </div>
     );
   };
@@ -269,8 +346,18 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
                 <CheckCircle className="w-10 h-10" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Complete Route</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm px-4">Ensure the bins are emptied. The sensors will verify the collection drop automatically.</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm px-4">Ensure the bins are emptied. The system checks sensor readings to ensure the bin is less than 20% full.</p>
               
+              {sensorAlert && (
+                <div className="p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-500/40 rounded-xl text-red-800 dark:text-red-300 text-sm font-semibold flex flex-col gap-1 text-left mb-6 animate-in fade-in">
+                  <div className="flex items-center gap-2 font-bold text-red-700 dark:text-red-400">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+                    <span>Collection Cannot Be Finished</span>
+                  </div>
+                  <p className="mt-1">{sensorAlert}</p>
+                </div>
+              )}
+
               {renderFillGauge()}
 
               <button 
@@ -289,3 +376,4 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
 };
 
 export default FieldOpsWizard;
+

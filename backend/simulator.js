@@ -17,7 +17,7 @@
  *    npm install node-fetch
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://swcmas3.onrender.com';
 const API_URL = `${BACKEND_URL}/api/v1/sensors/reading`;
 const DEVICE_KEY = process.env.SENSOR_DEVICE_KEY || 'swcmas-iot-secret-2026';
 const INTERVAL_MS = 10000; // Send every 10 seconds
