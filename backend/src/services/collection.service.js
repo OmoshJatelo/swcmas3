@@ -95,7 +95,6 @@ const completeCollection = async (id, completeData, afterPhotoUrl) => {
   await collection.save();
 
   // --- Sensor-Based Auto-Verification ---
-  const sensorService = require('./sensor.service');
   const sensorResult = await sensorService.detectCollectionFromSensor(collection._id);
   let autoVerified = false;
   
