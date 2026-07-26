@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { createNotification } = require('../services/notification.service');
 const ApiError = require('../utils/ApiError');
 const deepseekService = require('./deepseek.service');
+const assignmentService = require('./assignment.service');
 const logger = require('../utils/logger');
 
 /** List complaints with optional filters and pagination */
@@ -42,6 +43,11 @@ const createComplaint = async (residentId, data) => {
     logger.error('Auto AI analysis failed for complaint %s: %s', complaint._id, err.message);
   });
 
+  // Auto-assign to best collector asynchronously
+  autoAssignComplaint(complaint._id).catch((err) => {
+    logger.error('Auto-assignment failed for complaint %s: %s', complaint._id, err.message);
+  });
+
   // Notify all county officers about the new complaint
   try {
     const officers = await User.find({ role: 'county_officer' });
@@ -62,6 +68,20 @@ const createComplaint = async (residentId, data) => {
     logger.error('Failed to create complaint notifications: %s', e.message);
   }
   return complaint;
+};
+
+/** Auto-assign complaint to best collector */
+const autoAssignComplaint = async (complaintId) => {
+  // Wait a bit for apartment population if needed
+  await new Promise(r => setTimeout(r, 100));
+  
+  const complaint = await Complaint.findById(complaintId).populate('apartment');
+  if (!complaint) {
+    logger.warn('Complaint not found for auto-assignment', { complaintId });
+    return null;
+  }
+  
+  return assignmentService.autoAssignComplaint(complaint);
 };
 
 /** Update complaint (officer) */
@@ -142,4 +162,5 @@ module.exports = {
   rejectComplaint,
   analyzeComplaint,
   runAIAnalysis,
+  autoAssignComplaint,
 };
