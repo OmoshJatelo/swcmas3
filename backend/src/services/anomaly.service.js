@@ -5,6 +5,7 @@ const Apartment = require('../models/Apartment');
 const User = require('../models/User');
 const SensorReading = require('../models/SensorReading');
 const sensorService = require('./sensor.service');
+const deepseekService = require('./deepseek.service');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
@@ -223,4 +224,23 @@ const resolveAlert = async (id, resolverId, resolution) => {
   return alert;
 };
 
-module.exports = { runDetections, listAlerts, resolveAlert };
+/** Get AI-generated remediation playbook for an alert */
+const getPlaybook = async (alertId) => {
+  const alert = await AnomalyAlert.findById(alertId);
+  if (!alert) throw new ApiError(404, 'Anomaly alert not found');
+  
+  // Check if playbook already cached on alert
+  if (alert.aiPlaybook) {
+    return alert.aiPlaybook;
+  }
+  
+  const playbook = await deepseekService.generateAnomalyPlaybook(alert);
+  
+  // Cache on alert for future requests
+  alert.aiPlaybook = playbook;
+  await alert.save();
+  
+  return playbook;
+};
+
+module.exports = { runDetections, listAlerts, resolveAlert, getPlaybook };

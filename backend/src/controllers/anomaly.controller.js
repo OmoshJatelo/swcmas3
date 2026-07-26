@@ -28,4 +28,14 @@ const resolve = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, resolve };
+// GET /anomalies/:id/playbook – get AI remediation playbook
+const getPlaybook = async (req, res, next) => {
+  try {
+    const playbook = await anomalyService.getPlaybook(req.params.id);
+    res.json(new ApiResponse({ data: playbook }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAll, resolve, getPlaybook };
