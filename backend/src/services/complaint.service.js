@@ -81,6 +81,12 @@ const autoAssignComplaint = async (complaintId) => {
     return null;
   }
   
+  // Skip if already assigned
+  if (complaint.assignedTo) {
+    logger.info('Complaint already assigned, skipping auto-assignment', { complaintId });
+    return complaint;
+  }
+  
   return assignmentService.autoAssignComplaint(complaint);
 };
 
