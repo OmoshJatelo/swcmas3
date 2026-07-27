@@ -56,6 +56,7 @@ const config = {
 
   allowedOrigins: [
     'http://localhost:5173',
+    'https://swcmas3.vercel.app',
     'http://localhost:3000',
     'http://localhost:80',
     'http://localhost',
