@@ -1,8 +1,21 @@
 import React from 'react';
 import Modal from './Modal.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
 import { AlertTriangle } from 'lucide-react';
 
-const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', isDestructive = false }) => {
+const ConfirmDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  isDestructive = false,
+  isConfirming = false,
+}) => {
+  const descId = `confirm-desc-${title?.replace(/\s/g, '-').toLowerCase()}`;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-sm">
       <div className="flex flex-col items-center text-center">
@@ -12,7 +25,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
           </div>
         )}
         <div className="mt-2">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p id={descId} className="text-sm text-gray-500 dark:text-gray-400">
             {message}
           </p>
         </div>
@@ -21,23 +34,26 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex justify-center rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
+          disabled={isConfirming}
+          className="btn inline-flex justify-center rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 focus-ring transition-colors disabled:opacity-50"
         >
           {cancelText}
         </button>
         <button
           type="button"
+          aria-describedby={descId}
+          disabled={isConfirming}
           onClick={() => {
             onConfirm();
-            onClose();
+            if (!isConfirming) onClose();
           }}
-          className={`inline-flex justify-center rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-            isDestructive 
-              ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-              : 'bg-brand-600 hover:bg-brand-700 focus:ring-brand-500'
+          className={`btn inline-flex justify-center rounded-lg border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus-ring transition-colors disabled:opacity-70 ${
+            isDestructive
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-brand-600 hover:bg-brand-700'
           }`}
         >
-          {confirmText}
+          {isConfirming ? <LoadingSpinner size="sm" /> : confirmText}
         </button>
       </div>
     </Modal>

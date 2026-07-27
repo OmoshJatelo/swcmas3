@@ -1,44 +1,83 @@
-import React from 'react';
+import React, { memo } from 'react';
+import SkeletonRows from './SkeletonLoader.jsx';
+import EmptyState from './EmptyState.jsx';
+import { FileSearch } from 'lucide-react';
 
-const DataTable = ({ columns, data, keyField = 'id', onRowClick, emptyMessage = 'No data available' }) => {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b border-gray-200 dark:border-slate-700/50 text-sm text-gray-500 dark:text-gray-400">
-            {columns.map((col, index) => (
-              <th key={index} className="pb-3 px-4 font-medium whitespace-nowrap">
-                {col.header}
-              </th>
-            ))}
+/**
+ * DataTable — enterprise-grade data table with zebra rows, sticky header support, loading state.
+ *
+ * Props:
+ *  columns       { header, accessor, render? }[]
+ *  data          array
+ *  keyField      string (default 'id')
+ *  onRowClick    fn(row)
+ *  emptyMessage  string
+ *  isLoading     boolean
+ *  stickyHeader  boolean
+ *  aria-label    string
+ */
+const DataTable = memo(({
+  columns,
+  data,
+  keyField = 'id',
+  onRowClick,
+  emptyMessage = 'No data available',
+  isLoading = false,
+  stickyHeader = false,
+  'aria-label': ariaLabel,
+}) => (
+  <div className="overflow-x-auto -mx-1">
+    <table className="w-full text-left border-collapse" role="table" aria-label={ariaLabel}>
+      <thead>
+        <tr className={`border-b border-gray-200 dark:border-slate-700/70 ${stickyHeader ? 'sticky top-0 z-10 bg-white dark:bg-slate-900' : ''}`}>
+          {columns.map((col, i) => (
+            <th
+              key={i}
+              scope="col"
+              className="pb-3 px-4 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap"
+            >
+              {col.header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody className="text-sm divide-y divide-gray-100 dark:divide-slate-800/80">
+        {isLoading ? (
+          <SkeletonRows count={5} cols={columns.length} />
+        ) : data.length === 0 ? (
+          <tr>
+            <td colSpan={columns.length} className="py-10">
+              <EmptyState
+                icon={FileSearch}
+                title="No results"
+                message={emptyMessage}
+              />
+            </td>
           </tr>
-        </thead>
-        <tbody className="text-sm">
-          {data.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                {emptyMessage}
-              </td>
+        ) : (
+          data.map((row, rowIndex) => (
+            <tr
+              key={row[keyField] ?? rowIndex}
+              onClick={() => onRowClick?.(row)}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onRowClick(row); } : undefined}
+              className={`transition-colors duration-100 ${
+                onRowClick ? 'cursor-pointer hover:bg-brand-50/60 dark:hover:bg-brand-500/5 focus-ring' : ''
+              } ${rowIndex % 2 === 1 ? 'bg-gray-50/50 dark:bg-slate-800/20' : ''}`}
+            >
+              {columns.map((col, colIndex) => (
+                <td key={colIndex} className="py-3.5 px-4 text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                  {col.render ? col.render(row) : row[col.accessor]}
+                </td>
+              ))}
             </tr>
-          ) : (
-            data.map((row, rowIndex) => (
-              <tr 
-                key={row[keyField] || rowIndex} 
-                onClick={() => onRowClick && onRowClick(row)}
-                className={`border-b border-gray-100 dark:border-slate-800/50 transition-colors ${onRowClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50' : ''}`}
-              >
-                {columns.map((col, colIndex) => (
-                  <td key={colIndex} className="py-4 px-4 whitespace-nowrap text-gray-900 dark:text-gray-200">
-                    {col.render ? col.render(row) : row[col.accessor]}
-                  </td>
-                ))}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+));
+
+DataTable.displayName = 'DataTable';
 
 export default DataTable;

@@ -1,60 +1,259 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   DESIGN TOKENS — CSS CUSTOM PROPERTIES
+   ============================================================ */
 @layer base {
   :root {
     --bg-main: #f8fafc;
-    --text-main: #0f172a;
+    --bg-surface: #ffffff;
+    --bg-subtle: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border-default: #e2e8f0;
+    --border-subtle: #f1f5f9;
+
+    /* Semantic palette */
+    --color-success: #10b981;
+    --color-success-bg: #ecfdf5;
+    --color-warning: #f59e0b;
+    --color-warning-bg: #fffbeb;
+    --color-danger: #ef4444;
+    --color-danger-bg: #fef2f2;
+    --color-info: #3b82f6;
+    --color-info-bg: #eff6ff;
+    --color-brand: #059669;
+    --color-brand-bg: #ecfdf5;
+
+    /* Elevation shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+
+    /* Border radii */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
   }
-  
+
   .dark {
-    --bg-main: #020617; /* Very dark slate */
-    --text-main: #f8fafc;
+    --bg-main: #020617;
+    --bg-surface: #0f172a;
+    --bg-subtle: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border-default: rgba(51, 65, 85, 0.6);
+    --border-subtle: rgba(30, 41, 59, 0.8);
+
+    --color-success-bg: rgba(16, 185, 129, 0.1);
+    --color-warning-bg: rgba(245, 158, 11, 0.1);
+    --color-danger-bg: rgba(239, 68, 68, 0.1);
+    --color-info-bg: rgba(59, 130, 246, 0.1);
+    --color-brand-bg: rgba(5, 150, 105, 0.1);
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.3);
   }
 
   body {
     background-color: var(--bg-main);
-    color: var(--text-main);
+    color: var(--text-primary);
     font-family: 'Inter', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Heading font — display weight */
+  h1, h2, h3 {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Smooth scrolling */
+  * {
+    scroll-behavior: smooth;
+  }
+
+  /* Improved focus outline */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
   }
 }
 
+/* ============================================================
+   COMPONENT UTILITIES
+   ============================================================ */
 @layer utilities {
+
+  /* ─── Glass Panels ──────────────────────────────────── */
   .glass-panel {
-    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50 shadow-lg;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
   }
-  
+  .dark .glass-panel {
+    background-color: rgba(15, 23, 42, 0.9);
+    border-color: var(--border-default);
+  }
+
   .glass-header {
-    @apply bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800;
+    background-color: rgba(255, 255, 255, 0.97);
+    border-bottom: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
   }
-  
+  .dark .glass-header {
+    background-color: rgba(2, 6, 23, 0.97);
+    border-bottom-color: var(--border-default);
+  }
+
+  /* ─── Cards ─────────────────────────────────────────── */
+  .card {
+    @apply bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800;
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+  }
+
+  /* ─── Typography ─────────────────────────────────────── */
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-emerald-400;
   }
 
-  /* Custom Scrollbar */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-gray-900 dark:text-white;
   }
+
+  .page-subtitle {
+    @apply text-sm text-gray-500 dark:text-slate-400 mt-1;
+  }
+
+  .section-title {
+    @apply text-base font-semibold text-gray-900 dark:text-white;
+  }
+
+  /* ─── Navigation ─────────────────────────────────────── */
+  .nav-group-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500 px-3 mb-1 mt-4 first:mt-0;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-sm font-medium;
+  }
+
+  .nav-item-inactive {
+    @apply text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/70 hover:text-gray-900 dark:hover:text-slate-200;
+  }
+
+  .nav-item-active {
+    @apply bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 border-l-[3px] border-brand-500;
+  }
+
+  /* ─── Progress Bars ──────────────────────────────────── */
+  .progress-track {
+    @apply h-2 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  /* ─── Status Badges ──────────────────────────────────── */
+  .badge-dot {
+    @apply inline-block w-1.5 h-1.5 rounded-full mr-1.5;
+  }
+
+  /* ─── Skeleton Shimmer ───────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      theme('colors.gray.200') 25%,
+      theme('colors.gray.100') 50%,
+      theme('colors.gray.200') 75%
+    );
+    background-size: 800px 100%;
+    @apply animate-shimmer rounded-lg;
+  }
+  .dark .skeleton {
+    background: linear-gradient(
+      90deg,
+      theme('colors.slate.800') 25%,
+      theme('colors.slate.700') 50%,
+      theme('colors.slate.800') 75%
+    );
+    background-size: 800px 100%;
+  }
+
+  /* ─── Buttons ─────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center font-medium transition-all duration-150 ease-out select-none rounded-xl;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 hover:bg-brand-700 text-white shadow-sm shadow-brand-600/20 px-4 py-2 text-sm;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2 text-sm;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-400 px-3 py-2 text-sm;
+  }
+
+  .btn-icon {
+    @apply btn p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl;
+  }
+
+  /* ─── Focus Ring ─────────────────────────────────────── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
+  }
+
+  /* ─── Scrollbar ──────────────────────────────────────── */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply bg-gray-300 dark:bg-slate-700 rounded-full;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400 dark:bg-slate-600;
+  }
+
+  /* ─── Divider ─────────────────────────────────────────── */
+  .divider {
+    @apply border-t border-gray-100 dark:border-slate-800 my-4;
+  }
+
+  /* ─── Table ──────────────────────────────────────────── */
+  .table-row-hover {
+    @apply hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors duration-100;
   }
 }
