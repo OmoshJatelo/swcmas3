@@ -43,7 +43,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-900 font-sans">
-      
+
       {/* =========================================================
           LEFT PANEL (40%) — Branding & Marketing 
           ========================================================= */}
@@ -61,7 +61,7 @@ const LoginPage = () => {
 
           <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
             <h1 className="text-4xl xl:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
-              Smart Waste<br />Collection<br />Management System
+              Smart Waste<br />Collection<br />Management and Assessment System
             </h1>
             <p className="mt-6 text-lg text-gray-500 dark:text-gray-400 max-w-sm leading-relaxed">
               Making waste collection smarter, cleaner and more efficient using real-time IoT monitoring and AI-powered analytics.
@@ -79,7 +79,7 @@ const LoginPage = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Monitor smart bins in real time.</p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-4">
               <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 shrink-0 border border-emerald-100 dark:border-emerald-500/20">
                 <Map className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -112,7 +112,7 @@ const LoginPage = () => {
       {/* =========================================================
           RIGHT PANEL (60%) — Login Form 
           ========================================================= */}
-      <div 
+      <div
         className="w-full lg:w-3/5 min-h-screen relative flex items-center justify-center p-6 sm:p-12 lg:p-24 overflow-hidden"
         style={{
           background: 'radial-gradient(circle at bottom left, #34D399 0%, #10B981 25%, #059669 50%, #065F46 80%, #022C22 100%)'
@@ -124,19 +124,19 @@ const LoginPage = () => {
         <div className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-black/20 rounded-full mix-blend-overlay filter blur-[80px] animate-blob pointer-events-none" style={{ animationDelay: '2000ms' }} aria-hidden="true" />
         <div className="absolute top-1/3 left-1/3 w-2 h-2 bg-white rounded-full blur-[1px] animate-pulse pointer-events-none" aria-hidden="true" />
         <div className="absolute top-2/3 right-1/3 w-3 h-3 bg-emerald-200 rounded-full blur-[2px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} aria-hidden="true" />
-        
+
         {/* Mobile Header (Hidden on Desktop split view) */}
         <div className="absolute top-8 left-8 lg:hidden flex items-center gap-3">
-           <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg">
-             <Leaf className="w-5 h-5 text-white" />
-           </div>
-           <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">
-             SWCMAS
-           </span>
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg">
+            <Leaf className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">
+            SWCMAS
+          </span>
         </div>
 
         {/* Glassmorphism Logic Card */}
-        <div 
+        <div
           className="w-full max-w-md relative z-10 p-8 sm:p-10 rounded-[24px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] animate-slide-up bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20"
         >
           <div className="text-center mb-8">
@@ -149,7 +149,7 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-            
+
             {/* Error Message */}
             {error && (
               <div
@@ -162,9 +162,9 @@ const LoginPage = () => {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-5">
-              
+
               {/* Email Input */}
               <div>
                 <label className="block text-sm font-semibold text-white/90 mb-2 ml-1" htmlFor="email">
@@ -194,8 +194,8 @@ const LoginPage = () => {
                   <label className="block text-sm font-semibold text-white/90" htmlFor="password">
                     Password
                   </label>
-                  <Link 
-                    to="/auth/reset-password" 
+                  <Link
+                    to="/auth/reset-password"
                     className="text-sm font-medium text-emerald-100 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-md px-1 -mx-1"
                   >
                     Forgot password?
@@ -237,7 +237,7 @@ const LoginPage = () => {
             >
               {/* Shimmer effect inside button on hover */}
               <div className="absolute inset-0 -translate-x-full group-hover:animate-button-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
-              
+
               {isSubmitting ? (
                 <span className="flex items-center gap-2 drop-shadow-md relative z-10">
                   <LoadingSpinner size="sm" />
@@ -247,14 +247,14 @@ const LoginPage = () => {
                 <span className="drop-shadow-md text-base relative z-10">Sign In</span>
               )}
             </button>
-            
+
           </form>
 
           <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '100ms' }}>
             <p className="text-sm text-emerald-50">
               Don't have an account?{' '}
-              <Link 
-                to="/auth/register" 
+              <Link
+                to="/auth/register"
                 className="font-semibold text-white underline decoration-white/30 decoration-2 underline-offset-4 hover:decoration-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-md px-1 -mx-1"
               >
                 Create one now
