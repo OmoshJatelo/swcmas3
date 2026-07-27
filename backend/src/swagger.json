@@ -8,6 +8,7 @@
     "license": { "name": "MIT" }
   },
   "servers": [
+    { "url": "https://swcmas3.onrender.com/api/v1", "description": "Production Server (Render)" },
     { "url": "http://localhost:5000/api/v1", "description": "Development Server" }
   ],
   "components": {

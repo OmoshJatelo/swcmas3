@@ -11,7 +11,8 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user && token) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const rawUrl = import.meta.env.VITE_BACKEND_URL || 'https://swcmas3.onrender.com';
+      const backendUrl = rawUrl.replace(/\/api\/v1\/?$/, '');
       
       const newSocket = io(backendUrl, {
         auth: {
