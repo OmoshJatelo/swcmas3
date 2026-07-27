@@ -140,6 +140,11 @@ const CollectorDashboard = () => {
     );
   };
 
+  const handleWizardComplete = () => {
+    setActiveWizard(null);
+    fetchStats();
+  };
+
   if (loading) return <div className="h-full flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   if (error) return <EmptyState title="Error Loading Dashboard" message={error} icon={MapIcon} />;
   if (!stats) return null;

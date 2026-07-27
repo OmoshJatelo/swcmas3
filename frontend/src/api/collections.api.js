@@ -13,30 +13,28 @@ export const createCollection = async (payload) => {
   return data.data;
 };
 
-export const startCollection = async (id, formData) => {
+export const startCollection = async (id, payload) => {
   try {
-    const { data } = await api.patch(`/collections/${id}/start`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const config = payload instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const { data } = await api.patch(`/collections/${id}/start`, payload, config);
     return data.data;
   } catch (error) {
     if (!navigator.onLine || error.message === 'Network Error') {
-      await addToQueue(`/collections/${id}/start`, formData, true);
+      await addToQueue(`/collections/${id}/start`, payload, true);
       throw new Error('You are offline. Collection start saved to sync queue.');
     }
     throw error;
   }
 };
 
-export const completeCollection = async (id, formData) => {
+export const completeCollection = async (id, payload) => {
   try {
-    const { data } = await api.patch(`/collections/${id}/complete`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const config = payload instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const { data } = await api.patch(`/collections/${id}/complete`, payload, config);
     return data.data;
   } catch (error) {
     if (!navigator.onLine || error.message === 'Network Error') {
-      await addToQueue(`/collections/${id}/complete`, formData, true);
+      await addToQueue(`/collections/${id}/complete`, payload, true);
       throw new Error('You are offline. Collection complete saved to sync queue.');
     }
     throw error;
