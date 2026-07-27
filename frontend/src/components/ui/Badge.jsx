@@ -1,46 +1,48 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-const variantConfig = {
-  success: {
-    wrapper: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-500/25',
-    dot: 'bg-emerald-500',
-  },
-  warning: {
-    wrapper: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-500/25',
-    dot: 'bg-amber-500',
-  },
-  danger: {
-    wrapper: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-500/25',
-    dot: 'bg-red-500',
-  },
-  info: {
-    wrapper: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200 dark:ring-blue-500/25',
-    dot: 'bg-blue-500',
-  },
-  default: {
-    wrapper: 'bg-gray-100 dark:bg-slate-800/80 text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-slate-700',
-    dot: 'bg-gray-400 dark:bg-gray-500',
-  },
+const VARIANT_STYLES = {
+  success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20',
+  warning: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20',
+  danger:  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400 border border-red-200 dark:border-red-500/20',
+  info:    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20',
+  default: 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300 border border-gray-200 dark:border-slate-700',
 };
 
-const Badge = ({ children, variant = 'default', dot = true, className = '' }) => {
-  const config = variantConfig[variant] || variantConfig.default;
-
-  return (
-    <span
-      className={`
-        inline-flex items-center gap-1.5 px-2.5 py-0.5
-        rounded-full text-xs font-semibold tracking-wide
-        backdrop-blur-sm transition-all duration-200
-        ${config.wrapper} ${className}
-      `}
-    >
-      {dot && (
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />
-      )}
-      {children}
-    </span>
-  );
+const DOT_COLORS = {
+  success: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  danger:  'bg-red-500',
+  info:    'bg-blue-500',
+  default: 'bg-gray-400',
 };
+
+const SIZE_STYLES = {
+  sm: 'px-2 py-0 text-[10px]',
+  md: 'px-2.5 py-0.5 text-xs',
+};
+
+/**
+ * Badge
+ * Props:
+ *  variant   'success'|'warning'|'danger'|'info'|'default'
+ *  size      'sm'|'md'
+ *  dot       boolean — renders a colored dot before text
+ *  className string
+ */
+const Badge = memo(({ children, variant = 'default', size = 'md', dot = false, className = '' }) => (
+  <span
+    className={`inline-flex items-center font-medium rounded-full ${VARIANT_STYLES[variant]} ${SIZE_STYLES[size]} ${className}`}
+  >
+    {dot && (
+      <span
+        className={`badge-dot ${DOT_COLORS[variant]}`}
+        aria-hidden="true"
+      />
+    )}
+    {children}
+  </span>
+));
+
+Badge.displayName = 'Badge';
 
 export default Badge;

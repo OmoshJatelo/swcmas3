@@ -260,15 +260,15 @@ const CollectorDashboard = () => {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Collector Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your assigned routes and performance metrics</p>
+        <h2 className="page-title">Collector Dashboard</h2>
+        <p className="page-subtitle">Your assigned routes and performance metrics</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Assigned" value={stats.assignedCount} icon={ListTodo} />
-        <StatCard title="Completed" value={stats.completedCount} icon={CheckCircle} />
-        <StatCard title="Verified" value={stats.verifiedCount} icon={Star} />
-        <StatCard title="Today's Routes" value={stats.todayAssignments?.length || 0} icon={MapIcon} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Assigned" value={stats.assignedCount} icon={ListTodo} variant="blue" />
+        <StatCard title="Completed" value={stats.completedCount} icon={CheckCircle} variant="green" />
+        <StatCard title="Verified" value={stats.verifiedCount} icon={Star} variant="brand" />
+        <StatCard title="Today's Routes" value={stats.todayAssignments?.length || 0} icon={MapIcon} variant="purple" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

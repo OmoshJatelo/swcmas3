@@ -1,48 +1,77 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import React, { memo } from 'react';
 
-const TrustScoreGauge = ({ score, title = "Trust Score", className = '' }) => {
-  // Score out of 100
-  const normalizedScore = Math.min(100, Math.max(0, score));
-  const data = [
-    { name: 'Score', value: normalizedScore },
-    { name: 'Remaining', value: 100 - normalizedScore }
-  ];
+/**
+ * ProgressScoreCard — replaces TrustScoreGauge.
+ * Cleaner, more readable animated linear progress bar.
+ * Backward-compatible: can still be called as <TrustScoreGauge score={n} title="..." />
+ *
+ * Props:
+ *  score     number  0–100
+ *  title     string
+ *  className string
+ */
+const TrustScoreGauge = memo(({ score, title = 'Trust Score', className = '' }) => {
+  const pct = Math.min(100, Math.max(0, Math.round(score || 0)));
 
-  let color = '#ef4444'; // Red for low score (<50)
-  if (normalizedScore >= 80) color = '#10b981'; // Green for high score (>=80)
-  else if (normalizedScore >= 50) color = '#f59e0b'; // Amber for medium score (50-79)
+  // Color thresholds
+  const barColor =
+    pct >= 80 ? 'bg-emerald-500' :
+    pct >= 50 ? 'bg-amber-500' :
+    'bg-red-500';
+
+  const textColor =
+    pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+    pct >= 50 ? 'text-amber-600 dark:text-amber-400' :
+    'text-red-600 dark:text-red-400';
+
+  const label =
+    pct >= 80 ? 'Excellent' :
+    pct >= 50 ? 'Needs Attention' :
+    'Critical';
 
   return (
-    <div className={`glass-panel p-6 rounded-2xl flex flex-col items-center justify-center ${className}`}>
-      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{title}</h3>
-      <div className="relative w-32 h-32">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              startAngle={180}
-              endAngle={0}
-              innerRadius={45}
-              outerRadius={60}
-              dataKey="value"
-              stroke="none"
-              isAnimationActive={true}
-            >
-              <Cell fill={color} />
-              <Cell fill="#e2e8f0" className="dark:fill-slate-700" />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center mb-6">
-          <span className="text-3xl font-bold text-gray-900 dark:text-white mt-8">{normalizedScore}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">/ 100</span>
-        </div>
+    <div className={`glass-panel p-5 rounded-2xl ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h3>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          pct >= 80 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+          pct >= 50 ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400' :
+          'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+        }`}>
+          {label}
+        </span>
+      </div>
+
+      {/* Big metric */}
+      <p className={`text-4xl font-extrabold tracking-tight tabular-nums mb-4 ${textColor}`}>
+        {pct}<span className="text-xl font-medium text-gray-400 dark:text-slate-500">%</span>
+      </p>
+
+      {/* Progress bar */}
+      <div
+        className="progress-track"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${title}: ${pct}%`}
+      >
+        <div
+          className={`progress-fill ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Scale labels */}
+      <div className="flex justify-between mt-1.5">
+        <span className="text-[10px] text-gray-400 dark:text-slate-600">0%</span>
+        <span className="text-[10px] text-gray-400 dark:text-slate-600">100%</span>
       </div>
     </div>
   );
-};
+});
+
+TrustScoreGauge.displayName = 'TrustScoreGauge';
 
 export default TrustScoreGauge;
