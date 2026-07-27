@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { listApartments, deleteApartment, createApartment, updateApartment } from '@/api/apartments.api.js';
 import { listUsers } from '@/api/users.api.js';
 import { useAuth } from '@/context/AuthContext.jsx';
 import DataTable from '@/components/ui/DataTable.jsx';
 import Badge from '@/components/ui/Badge.jsx';
-import LoadingSpinner from '@/components/ui/LoadingSpinner.jsx';
 import EmptyState from '@/components/ui/EmptyState.jsx';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx';
 import Modal from '@/components/ui/Modal.jsx';
 import { Building2, Plus, Edit2, Trash2, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const inputCls =
+  'w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all duration-150';
 
 const ApartmentsPage = () => {
   const { user } = useAuth();
@@ -17,7 +19,6 @@ const ApartmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Modal & form state
   const [showModal, setShowModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,9 +26,10 @@ const ApartmentsPage = () => {
   
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [apartmentToDelete, setApartmentToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const selectedId = useRef(null);
-  const [formData, setFormData] = useState({
+  const emptyForm = {
     name: '',
     address: '',
     city: '',
@@ -37,37 +39,36 @@ const ApartmentsPage = () => {
     landlord: '',
     wasteCollector: '',
     collectionSchedule: { frequency: 'daily', time: '' },
-  });
+  };
+  const [formData, setFormData] = useState(emptyForm);
 
   if (!user || user.role !== 'county_admin') {
     return <EmptyState title="Access Denied" message="You do not have permission to view this page." icon={Building2} />;
   }
 
-  const fetchApartments = async (page = 1) => {
+  const fetchApartments = useCallback(async (page = 1) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
       const result = await listApartments(page);
       setData(result);
-      setError(null);
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to load apartments');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchApartments();
-  }, []);
+  }, [fetchApartments]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const result = await listUsers(1, 200);
         setUsers(result.users);
-      } catch (e) {
-        // ignore errors
-      }
+      } catch (e) { /* ignore */ }
     };
     fetchUsers();
   }, []);
@@ -79,28 +80,23 @@ const ApartmentsPage = () => {
 
   const handleConfirmDelete = async () => {
     if (!apartmentToDelete) return;
+    setIsDeleting(true);
     try {
       await deleteApartment(apartmentToDelete._id);
       toast.success('Property deleted successfully');
+      setIsDeleteModalOpen(false);
+      setApartmentToDelete(null);
       fetchApartments(data.page);
     } catch (e) {
       toast.error('Delete failed');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const openCreateModal = () => {
     setIsEdit(false);
-    setFormData({
-      name: '',
-      address: '',
-      city: '',
-      county: '',
-      unitCount: 1,
-      location: { lat: '', lng: '' },
-      landlord: '',
-      wasteCollector: '',
-      collectionSchedule: { frequency: 'daily', time: '' },
-    });
+    setFormData(emptyForm);
     setShowModal(true);
   };
 
@@ -185,7 +181,7 @@ const ApartmentsPage = () => {
         <div>
           <p className="font-medium text-gray-900 dark:text-white">{row.name}</p>
           <div className="flex items-center text-xs text-gray-500 mt-1">
-            <MapPin className="w-3 h-3 mr-1" />
+            <MapPin className="w-3 h-3 mr-1 shrink-0" />
             {row.address}, {row.city}
           </div>
         </div>
@@ -222,14 +218,14 @@ const ApartmentsPage = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => { e.stopPropagation(); openEditModal(row); }}
-            className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+            className="btn p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors focus-ring"
             title="Edit Property"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleDeleteClick(row); }}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+            className="btn p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors focus-ring"
             title="Delete Property"
           >
             <Trash2 className="w-4 h-4" />
@@ -248,7 +244,7 @@ const ApartmentsPage = () => {
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+          className="btn flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-sm focus-ring"
         >
           <Plus className="w-4 h-4" />
           Add Property
@@ -256,16 +252,23 @@ const ApartmentsPage = () => {
       </div>
 
       <div className="glass-panel rounded-2xl overflow-hidden">
-        {loading && !data.apartments.length ? (
-          <div className="py-12"><LoadingSpinner /></div>
-        ) : error ? (
-          <EmptyState title="Error Loading Properties" message={error} icon={Building2} />
+        {error ? (
+          <div className="p-6">
+            <EmptyState
+              title="Error Loading Properties"
+              message={error}
+              icon={Building2}
+              onRetry={() => fetchApartments()}
+            />
+          </div>
         ) : (
           <DataTable 
             columns={columns} 
             data={data.apartments} 
             keyField="_id"
+            isLoading={loading}
             emptyMessage="No properties found."
+            aria-label="Properties table"
           />
         )}
       </div>
@@ -273,11 +276,9 @@ const ApartmentsPage = () => {
       {apartmentToDelete && (
         <ConfirmDialog
           isOpen={isDeleteModalOpen}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setApartmentToDelete(null);
-          }}
+          onClose={() => { if (!isDeleting) { setIsDeleteModalOpen(false); setApartmentToDelete(null); } }}
           onConfirm={handleConfirmDelete}
+          isConfirming={isDeleting}
           title="Delete Property"
           message={`Are you sure you want to delete ${apartmentToDelete.name}? This will also delete related collections.`}
           confirmText="Delete Property"
@@ -287,51 +288,51 @@ const ApartmentsPage = () => {
 
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => !isSubmitting && setShowModal(false)}
         title={isEdit ? 'Edit Property' : 'Add New Property'}
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Property Name</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="e.g. Sunset Apartments" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Property Name <span className="text-red-500">*</span></label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputCls} placeholder="e.g. Sunset Apartments" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-              <input type="text" name="address" value={formData.address} onChange={handleChange} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address <span className="text-red-500">*</span></label>
+              <input type="text" name="address" value={formData.address} onChange={handleChange} required className={inputCls} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-                <input type="text" name="city" value={formData.city} onChange={handleChange} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City <span className="text-red-500">*</span></label>
+                <input type="text" name="city" value={formData.city} onChange={handleChange} required className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">County</label>
-                <input type="text" name="county" value={formData.county} onChange={handleChange} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">County <span className="text-red-500">*</span></label>
+                <input type="text" name="county" value={formData.county} onChange={handleChange} required className={inputCls} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Count</label>
-                <input type="number" name="unitCount" value={formData.unitCount} onChange={handleChange} min="1" required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                <input type="number" name="unitCount" value={formData.unitCount} onChange={handleChange} min="1" required className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
-                <input type="number" step="any" name="lat" value={formData.location.lat} onChange={handleNestedChange('location', 'lat')} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                <input type="number" step="any" value={formData.location.lat} onChange={handleNestedChange('location', 'lat')} required className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
-                <input type="number" step="any" name="lng" value={formData.location.lng} onChange={handleNestedChange('location', 'lng')} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                <input type="number" step="any" value={formData.location.lng} onChange={handleNestedChange('location', 'lng')} required className={inputCls} />
               </div>
             </div>
             
-            <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-4">
+            <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Assignments</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Landlord</label>
-                  <select name="landlord" value={formData.landlord} onChange={handleChange} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Landlord <span className="text-red-500">*</span></label>
+                  <select name="landlord" value={formData.landlord} onChange={handleChange} required className={inputCls}>
                     <option value="">Select landlord</option>
                     {users.filter(u => u.role === 'landlord').map(u => (
                       <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>
@@ -340,7 +341,7 @@ const ApartmentsPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Waste Collector</label>
-                  <select name="wasteCollector" value={formData.wasteCollector} onChange={handleChange} className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <select name="wasteCollector" value={formData.wasteCollector} onChange={handleChange} className={inputCls}>
                     <option value="">Select collector (optional)</option>
                     {users.filter(u => u.role === 'waste_collector').map(u => (
                       <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>
@@ -350,12 +351,12 @@ const ApartmentsPage = () => {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-4">
+            <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Collection Schedule</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency</label>
-                  <select name="frequency" value={formData.collectionSchedule.frequency} onChange={handleNestedChange('collectionSchedule', 'frequency')} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency <span className="text-red-500">*</span></label>
+                  <select value={formData.collectionSchedule.frequency} onChange={handleNestedChange('collectionSchedule', 'frequency')} required className={inputCls}>
                     <option value="daily">Daily</option>
                     <option value="every_other_day">Every Other Day</option>
                     <option value="weekly">Weekly</option>
@@ -364,19 +365,36 @@ const ApartmentsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                  <input type="time" name="time" value={formData.collectionSchedule.time} onChange={handleNestedChange('collectionSchedule', 'time')} required className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-2 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 focus:outline-none" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time <span className="text-red-500">*</span></label>
+                  <input type="time" value={formData.collectionSchedule.time} onChange={handleNestedChange('collectionSchedule', 'time')} required className={inputCls} />
                 </div>
               </div>
             </div>
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-300 dark:border-slate-600 transition-colors">
+            <button
+              type="button"
+              onClick={() => !isSubmitting && setShowModal(false)}
+              disabled={isSubmitting}
+              className="btn px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl border border-gray-300 dark:border-slate-600 transition-colors focus-ring disabled:opacity-50"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors disabled:opacity-70">
-              {isSubmitting ? <LoadingSpinner size="sm" /> : isEdit ? 'Save Changes' : 'Create Property'}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn px-4 py-2.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors focus-ring disabled:opacity-70 flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  Saving…
+                </>
+              ) : isEdit ? 'Save Changes' : 'Create Property'}
             </button>
           </div>
         </form>
