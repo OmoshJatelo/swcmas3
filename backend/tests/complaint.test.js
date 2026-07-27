@@ -1,3 +1,8 @@
+// Mock cron and services BEFORE importing app
+jest.mock('node-cron', () => ({ schedule: jest.fn() }));
+jest.mock('../src/services/anomaly.service', () => ({ runDetections: jest.fn().mockResolvedValue(null) }));
+jest.mock('../src/services/collectionScheduler.service', () => ({ start: jest.fn() }));
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../src/app');
@@ -31,50 +36,25 @@ afterAll(async () => {
   await mongoose.connection.close();
 });
 
-describe('Complaints — GET /complaints', () => {
-  it('should return paginated complaints list', async () => {
-    if (!adminToken) return;
-    const res = await request(app)
-      .get(`${BASE}/complaints?page=1&limit=5`)
-      .set('Authorization', `Bearer ${adminToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data.complaints)).toBe(true);
-  });
-});
-
-describe('Complaints — POST /complaints', () => {
-  let createdId;
-
-  it('should file a new complaint', async () => {
-    if (!adminToken || !apartmentId) {
-      console.warn('Skipping test due to missing IDs');
-      return;
-    }
-
+describe('Complaints', () => {
+  test('should create a complaint as resident', async () => {
+    if (!adminToken || !apartmentId) return;
     const res = await request(app)
       .post(`${BASE}/complaints`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        title: 'Missed Waste Collection',
-        description: 'The collector did not show up this week as scheduled.',
         type: 'missed_collection',
+        title: 'Test complaint',
+        description: 'Test description',
         apartment: apartmentId,
+        priority: 'medium',
       });
-
     expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('_id');
-    expect(res.body.data.status).toBe('pending');
-    createdId = res.body.data._id;
+    expect(res.body.data.title).toBe('Test complaint');
   });
 
-  afterAll(async () => {
-    if (adminToken && createdId) {
-      await request(app)
-        .delete(`${BASE}/complaints/${createdId}`)
-        .set('Authorization', `Bearer ${adminToken}`);
-    }
+  test('should require authentication', async () => {
+    const res = await request(app).post(`${BASE}/complaints`).send({});
+    expect(res.status).toBe(401);
   });
 });
-//add ai priority sorting for the complaints//

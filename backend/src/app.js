@@ -40,7 +40,9 @@ app.get('/health', (req, res) => {
 });
 
 // Database connection
-connectDB();
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+}
 
 // Start automated collection scheduler
 const collectionScheduler = require('./services/collectionScheduler.service');

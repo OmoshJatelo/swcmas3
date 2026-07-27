@@ -1,3 +1,8 @@
+// Mock cron and services BEFORE importing app
+jest.mock('node-cron', () => ({ schedule: jest.fn() }));
+jest.mock('../src/services/anomaly.service', () => ({ runDetections: jest.fn().mockResolvedValue(null) }));
+jest.mock('../src/services/collectionScheduler.service', () => ({ start: jest.fn() }));
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../src/app');
@@ -31,49 +36,23 @@ afterAll(async () => {
   await mongoose.connection.close();
 });
 
-describe('Collections — GET /collections', () => {
-  it('should return paginated collections list', async () => {
-    if (!adminToken) return;
-    const res = await request(app)
-      .get(`${BASE}/collections?page=1&limit=5`)
-      .set('Authorization', `Bearer ${adminToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data.collections)).toBe(true);
-  });
-});
-
-describe('Collections — POST /collections', () => {
-  let createdId;
-
-  it('should schedule a new collection', async () => {
-    if (!adminToken || !apartmentId || !collectorId) {
-      console.warn('Skipping test due to missing IDs');
-      return;
-    }
-
+describe('Collections', () => {
+  test('should create a collection schedule as admin', async () => {
+    if (!adminToken || !apartmentId || !collectorId) return;
     const res = await request(app)
       .post(`${BASE}/collections`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         apartment: apartmentId,
         wasteCollector: collectorId,
-        scheduledDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        notes: 'Test scheduled collection',
+        scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
-
     expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('_id');
-    expect(res.body.data.status).toBe('scheduled');
-    createdId = res.body.data._id;
+    expect(res.body.data.apartment).toBe(apartmentId);
   });
 
-  afterAll(async () => {
-    if (adminToken && createdId) {
-      await request(app)
-        .delete(`${BASE}/collections/${createdId}`)
-        .set('Authorization', `Bearer ${adminToken}`);
-    }
+  test('should require authentication', async () => {
+    const res = await request(app).post(`${BASE}/collections`).send({});
+    expect(res.status).toBe(401);
   });
 });

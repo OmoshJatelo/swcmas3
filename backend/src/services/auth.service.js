@@ -53,12 +53,20 @@ const login = async (email, password) => {
   const refreshToken = generateRefreshToken(user);
   user.refreshToken = refreshToken;
   user.lastLogin = new Date();
-  await user.save();
+  console.log('Before save - user:', user._id, 'refreshToken:', user.refreshToken);
+  try {
+    const savedUser = await user.save();
+    console.log('After save - savedUser:', savedUser._id, 'refreshToken:', savedUser.refreshToken);
+  } catch (saveErr) {
+    console.error('Save error:', saveErr);
+    throw saveErr;
+  }
   return { user, accessToken, refreshToken };
 };
 
 /** Refresh access token */
 const refresh = async (providedToken) => {
+  console.log('[auth.service] refresh called with token:', providedToken ? providedToken.substring(0, 20) + '...' : 'undefined');
   if (!providedToken) {
     const err = new Error('Refresh token missing');
     err.statusCode = 401;
@@ -67,13 +75,23 @@ const refresh = async (providedToken) => {
   let decoded;
   try {
     decoded = jwt.verify(providedToken, config.jwt.refreshSecret);
+    console.log('[auth.service] Token decoded successfully, user ID:', decoded.id);
   } catch (e) {
+    console.log('[auth.service] JWT verify failed:', e.message);
     const err = new Error('Invalid refresh token');
     err.statusCode = 401;
     throw err;
   }
-  const user = await User.findById(decoded.id);
+  // Explicitly select refreshToken field since it has select: false in schema
+  const user = await User.findById(decoded.id).select('+refreshToken');
+  console.log('[auth.service] User found:', user ? user._id : 'not found');
+  if (user) {
+    console.log('[auth.service] User refreshToken in DB:', user.refreshToken ? user.refreshToken.substring(0, 20) + '...' : 'undefined');
+    console.log('[auth.service] Provided token:', providedToken.substring(0, 20) + '...');
+    console.log('[auth.service] Match:', user.refreshToken === providedToken);
+  }
   if (!user || user.refreshToken !== providedToken) {
+    console.log('[auth.service] Token mismatch or user not found');
     const err = new Error('Refresh token not recognized');
     err.statusCode = 401;
     throw err;

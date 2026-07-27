@@ -83,6 +83,9 @@ const login = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken || req.body.refreshToken;
+    console.log('Refresh token from cookie:', req.cookies?.refreshToken ? 'present' : 'absent');
+    console.log('Refresh token from body:', req.body?.refreshToken ? 'present' : 'absent');
+    console.log('Token being passed to service:', token ? 'present' : 'absent');
     const { user, accessToken } = await authService.refresh(token);
     const data = {
       user: {
