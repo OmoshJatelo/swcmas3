@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getCollectorStats } from '@/api/dashboard.api.js';
+import { getCollectorStats, getCollectorCoachTips } from '@/api/dashboard.api.js';
 import StatCard from '@/components/ui/StatCard.jsx';
 import DataTable from '@/components/ui/DataTable.jsx';
 import Badge from '@/components/ui/Badge.jsx';
@@ -7,7 +7,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner.jsx';
 import EmptyState from '@/components/ui/EmptyState.jsx';
 import TrustScoreGauge from '@/components/ui/TrustScoreGauge.jsx';
 import FieldOpsWizard from './FieldOpsWizard.jsx';
-import { Map as MapIcon, CheckCircle, ListTodo, Star, PlayCircle } from 'lucide-react';
+import { Map as MapIcon, CheckCircle, ListTodo, Star, PlayCircle, Brain, Lightbulb } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext.jsx';
 import { useAuth } from '@/context/AuthContext.jsx';
 
@@ -20,6 +20,8 @@ const CollectorDashboard = () => {
   const { user } = useAuth();
   
   const [optimizing, setOptimizing] = useState(false);
+  const [coachTips, setCoachTips] = useState(null);
+  const [coachLoading, setCoachLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
@@ -32,8 +34,20 @@ const CollectorDashboard = () => {
     }
   };
 
+  const fetchCoachTips = async () => {
+    try {
+      const data = await getCollectorCoachTips();
+      setCoachTips(data);
+    } catch (e) {
+      console.error('Failed to load coach tips:', e);
+    } finally {
+      setCoachLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
+    fetchCoachTips();
 
     // Start live tracking emission
     if (!navigator.geolocation) return;
@@ -130,10 +144,83 @@ const CollectorDashboard = () => {
   if (error) return <EmptyState title="Error Loading Dashboard" message={error} icon={MapIcon} />;
   if (!stats) return null;
 
-  const handleWizardComplete = () => {
-    setActiveWizard(null);
-    setLoading(true);
-    fetchStats();
+  const CoachTipsPanel = () => {
+    if (coachLoading) {
+      return (
+        <div className="glass-panel p-6 rounded-2xl animate-pulse">
+          <div className="flex items-center gap-3 text-brand-600 dark:text-brand-400">
+            <div className="p-2 bg-brand-100 dark:bg-brand-500/20 rounded-xl">
+              <Brain className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white">AI Coach</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your performance...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (!coachTips) {
+      return (
+        <div className="glass-panel p-6 rounded-2xl">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+            <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-xl">
+              <Brain className="w-5 h-5" />
+            </div>
+            <p className="text-sm">AI Coach tips will appear after a few collections.</p>
+          </div>
+        </div>
+      );
+    }
+
+    const focusAreaLabels = {
+      gps: 'GPS Accuracy',
+      timeSpent: 'Time Management',
+      landlord: 'Landlord Verification',
+      resident: 'Resident Satisfaction',
+      sensor: 'Sensor Verification',
+      general: 'Overall Performance'
+    };
+
+    return (
+      <div className="glass-panel p-6 rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-gradient-to-br from-brand-50 to-emerald-50 dark:from-brand-500/5 dark:to-emerald-500/5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-brand-100 dark:bg-brand-500/20 rounded-xl">
+            <Brain className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-900 dark:text-white">AI Coach Tips</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Focus area: <span className="font-medium capitalize">{focusAreaLabels[coachTips.focusArea] || coachTips.focusArea}</span>
+              {coachTips.avgTotal && (
+                <> · Avg Score: <span className="font-bold text-brand-600 dark:text-brand-400">{coachTips.avgTotal}/100</span></>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {coachTips.tips?.map((tip, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                <span className="text-sm font-bold text-brand-600 dark:text-brand-400">{i + 1}</span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{tip}</p>
+            </div>
+          ))}
+        </div>
+
+        {coachTips.summary && (
+          <div className="mt-4 p-3 bg-brand-50 dark:bg-brand-500/10 rounded-xl border border-brand-100 dark:border-brand-500/20">
+            <div className="flex items-center gap-2 text-xs text-brand-700 dark:text-brand-300">
+              <Lightbulb className="w-4 h-4" />
+              <span className="font-medium">{coachTips.summary}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const todayCols = [
@@ -209,6 +296,8 @@ const CollectorDashboard = () => {
 
         <div className="space-y-6">
           <TrustScoreGauge score={stats.avgScore} title="Average Verification Score" />
+          
+          <CoachTipsPanel />
           
           <div className="glass-panel p-6 rounded-2xl">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>

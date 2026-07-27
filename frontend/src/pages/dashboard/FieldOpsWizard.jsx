@@ -370,6 +370,27 @@ const FieldOpsWizard = ({ collection, onClose, onComplete }) => {
             </div>
           </div>
         )}
+
+        {/* Fallback for invalid step */}
+        {(step !== 1 && step !== 2 && step !== 3) && (
+          <div className="space-y-6 animate-in slide-in-from-right fade-in duration-300">
+            <div className="text-center p-8">
+              <div className="w-20 h-20 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-5">
+                <AlertTriangle className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Wizard Error</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm px-4">
+                Invalid step: {step}. Please close and reopen the wizard.
+              </p>
+              <button 
+                onClick={onClose}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all shadow-lg hover:shadow-xl text-lg"
+              >
+                Close Wizard
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

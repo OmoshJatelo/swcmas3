@@ -11,5 +11,6 @@ router.get('/officer', dashboardController.officer);
 router.get('/landlord', dashboardController.landlord);
 router.get('/collector', dashboardController.collector);
 router.get('/resident', dashboardController.resident);
+router.get('/collector/coach-tips', dashboardController.coachTips);
 
 module.exports = router;

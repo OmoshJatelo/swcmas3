@@ -51,4 +51,14 @@ const resident = async (req, res, next) => {
   }
 };
 
-module.exports = { admin, officer, landlord, collector, resident };
+// Collector AI Coach Tips
+const coachTips = async (req, res, next) => {
+  try {
+    const data = await dashboardService.getCollectorCoachTips(req.user._id);
+    res.json(new ApiResponse({ data }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { admin, officer, landlord, collector, resident, coachTips };

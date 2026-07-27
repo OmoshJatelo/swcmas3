@@ -24,3 +24,8 @@ export const getResidentStats = async () => {
   const { data } = await api.get('/dashboard/resident');
   return data.data;
 };
+
+export const getCollectorCoachTips = async () => {
+  const { data } = await api.get('/dashboard/collector/coach-tips');
+  return data.data;
+};

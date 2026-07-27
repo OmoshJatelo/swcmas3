@@ -24,9 +24,9 @@ test('createComplaint sends notification to each officer', async () => {
   await createComplaint(residentId, data);
   expect(createNotification).toHaveBeenCalledTimes(2);
   expect(createNotification).toHaveBeenCalledWith(
-    expect.objectContaining({ user: 'officerId1', type: 'complaint_created' })
+    expect.objectContaining({ user: 'officerId1', type: 'complaint_update' })
   );
   expect(createNotification).toHaveBeenCalledWith(
-    expect.objectContaining({ user: 'officerId2', type: 'complaint_created' })
+    expect.objectContaining({ user: 'officerId2', type: 'complaint_update' })
   );
 });

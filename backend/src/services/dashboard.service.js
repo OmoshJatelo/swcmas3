@@ -3,6 +3,7 @@ const Apartment = require('../models/Apartment');
 const Collection = require('../models/Collection');
 const Complaint = require('../models/Complaint');
 const AnomalyAlert = require('../models/AnomalyAlert');
+const collectorCoachService = require('./collectorCoach.service');
 
 const getTrendData = async (Model, dateField = 'createdAt', days = 30, query = {}) => {
   const thirtyDaysAgo = new Date();
@@ -194,10 +195,16 @@ const getResidentSummary = async (residentId) => {
   };
 };
 
+/** Collector AI Coach – personalized performance tips */
+const getCollectorCoachTips = async (collectorId) => {
+  return await collectorCoachService.getCollectorCoachTips(collectorId);
+};
+
 module.exports = {
   getAdminSummary,
   getOfficerSummary,
   getLandlordSummary,
   getCollectorSummary,
   getResidentSummary,
+  getCollectorCoachTips,
 };

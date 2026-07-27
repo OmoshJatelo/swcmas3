@@ -60,7 +60,7 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      '/api': {
+      '/api/v1': {
         target: process.env.VITE_BACKEND_URL || 'https://swcmas3.onrender.com',
         changeOrigin: true,
         secure: false,

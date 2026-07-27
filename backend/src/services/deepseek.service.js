@@ -263,10 +263,74 @@ const analyzeText = async (prompt) => {
   return result;
 };
 
+/* ─────────────────────────────────────────────────────────────
+   5. ANOMALY PLAYBOOK GENERATION
+   ───────────────────────────────────────────────────────────── */
+
+const PLAYBOOK_SYSTEM_PROMPT = `You are a waste management operations expert for Kenyan county governments.
+Given an anomaly alert, provide a structured remediation playbook.
+Always respond with valid JSON in the following format:
+{
+  "rootCause": "<most likely root cause>",
+  "immediateSteps": ["<step 1>", "<step 2>", "<step 3>"],
+  "preventionTips": ["<tip 1>", "<tip 2>"],
+  "estimatedResolutionTime": "<e.g., '2-4 hours', '1 day'>",
+  "escalationPath": "<when to escalate and to whom>"
+}`;
+
+/**
+ * Generate an AI remediation playbook for an anomaly alert.
+ * @param {Object} alert - Anomaly alert object
+ * @returns {Object} Playbook with root cause, steps, prevention, time estimate, escalation
+ */
+const generateAnomalyPlaybook = async (alert) => {
+  const fallback = {
+    rootCause: 'Unable to determine root cause automatically.',
+    immediateSteps: [
+      'Investigate the anomaly manually.',
+      'Check related sensor data and collection records.',
+      'Contact the assigned collector or landlord for context.',
+    ],
+    preventionTips: [
+      'Review collection schedules for gaps.',
+      'Ensure sensors are calibrated and online.',
+    ],
+    estimatedResolutionTime: 'Unknown',
+    escalationPath: 'Escalate to County Officer if unresolved after 24 hours.',
+  };
+
+  const userPrompt = `Generate a remediation playbook for the following anomaly alert:
+
+Anomaly Type: ${alert.type}
+Severity: ${alert.severity}
+Entity: ${alert.entityType} (ID: ${alert.entityId})
+Description: ${alert.description}
+Details: ${JSON.stringify(alert.details || {})}
+
+Provide your analysis as JSON.`;
+
+  const raw = await callDeepSeek([
+    { role: 'system', content: PLAYBOOK_SYSTEM_PROMPT },
+    { role: 'user', content: userPrompt },
+  ], 600);
+
+  const parsed = safeParseJSON(raw);
+  if (!parsed) return fallback;
+
+  return {
+    rootCause: parsed.rootCause || fallback.rootCause,
+    immediateSteps: Array.isArray(parsed.immediateSteps) ? parsed.immediateSteps : fallback.immediateSteps,
+    preventionTips: Array.isArray(parsed.preventionTips) ? parsed.preventionTips : fallback.preventionTips,
+    estimatedResolutionTime: parsed.estimatedResolutionTime || fallback.estimatedResolutionTime,
+    escalationPath: parsed.escalationPath || fallback.escalationPath,
+  };
+};
+
 module.exports = {
   classifyComplaint,
   generateReportSummary,
   getComplianceInsights,
+  generateAnomalyPlaybook,
   analyzeText,
   callDeepSeek,
   safeParseJSON,

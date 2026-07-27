@@ -7,7 +7,7 @@ let storage;
 
 // Only use Cloudinary when real credentials are provided (non-empty)
 if (config.cloudinary && config.cloudinary.cloudName && config.cloudinary.apiKey) {
-  const { CloudinaryStorage } = require('multer-storage-cloudinary');
+  const CloudinaryStorage = require('multer-storage-cloudinary');
   const cloudinary = require('../config/cloudinary');
   storage = new CloudinaryStorage({
     cloudinary,
