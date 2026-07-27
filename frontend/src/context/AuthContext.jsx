@@ -13,8 +13,22 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('accessToken');
     const storedUser = localStorage.getItem('user');
     if (storedToken && storedUser) {
-      setAccessToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        const { exp } = jwtDecode(storedToken);
+        const now = Date.now() / 1000;
+        if (exp > now) {
+          setAccessToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        } else {
+          // Token expired, clear storage
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+        }
+      } catch (e) {
+        console.error('Invalid token in storage', e);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+      }
     }
   }, []);
 

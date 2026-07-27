@@ -57,4 +57,41 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400 dark:bg-slate-600;
   }
+
+  /* Animation utilities for FieldOpsWizard */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-in-from-right {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slide-in-from-left {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slide-in-from-bottom {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .animate-in {
+    animation-fill-mode: both;
+  }
+  .fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  .slide-in-from-right {
+    animation: slide-in-from-right 0.3s ease-out;
+  }
+  .slide-in-from-left {
+    animation: slide-in-from-left 0.3s ease-out;
+  }
+  .slide-in-from-bottom {
+    animation: slide-in-from-bottom 0.3s ease-out;
+  }
+  .duration-300 {
+    animation-duration: 300ms;
+  }
 }
