@@ -30,6 +30,7 @@ const mapRoutes = require('./routes/map.routes');
 const residentVerificationRoutes = require('./routes/residentVerification.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const sensorRoutes = require('./routes/sensor.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use(`${config.apiPrefix}/maps`, mapRoutes);
 app.use(`${config.apiPrefix}/verifications`, residentVerificationRoutes);
 app.use(`${config.apiPrefix}/invoices`, invoiceRoutes);
 app.use(`${config.apiPrefix}/sensors`, sensorRoutes);
+app.use(`${config.apiPrefix}/analytics`, analyticsRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

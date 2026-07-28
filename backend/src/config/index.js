@@ -42,7 +42,7 @@ const config = {
     from: process.env.EMAIL_FROM || 'noreply@swcmas.com',
   },
 
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5000',
 
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000,
@@ -55,7 +55,7 @@ const config = {
   maxCollectionsPerCollectorDay: parseInt(process.env.MAX_COLLECTIONS_PER_COLLECTOR_DAY, 10) || 10,
 
   allowedOrigins: [
-    'http://localhost:5173',
+    'http://localhost:5000',
     'http://localhost:3000',
     'http://localhost:80',
     'http://localhost',

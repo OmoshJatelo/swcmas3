@@ -14,5 +14,6 @@ router.get('/health', protect, authorize('county_admin', 'county_officer'), sens
 // Generic access for authenticated users
 router.get('/:apartmentId', protect, sensorController.getLatestReading);
 router.get('/:apartmentId/history', protect, sensorController.getReadingHistory);
+router.get('/:apartmentId/trend', protect, sensorController.getDailyTrend);
 
 module.exports = router;

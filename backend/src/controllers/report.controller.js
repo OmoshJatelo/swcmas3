@@ -37,4 +37,16 @@ const create = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getOne, create };
+// GET /reports/:id/export?format=csv – download report as CSV
+const exportCsv = async (req, res, next) => {
+  try {
+    const { filename, csv } = await reportService.exportReportCsv(req.params.id);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAll, getOne, create, exportCsv };

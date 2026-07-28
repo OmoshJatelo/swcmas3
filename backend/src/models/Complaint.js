@@ -80,6 +80,8 @@ complaintSchema.index({ resident: 1 });
 complaintSchema.index({ apartment: 1 });
 complaintSchema.index({ type: 1 });
 complaintSchema.index({ status: 1, priority: 1 });
+complaintSchema.index({ type: 1, status: 1 });   // complaint type breakdown queries
+complaintSchema.index({ resolvedAt: -1 });         // resolution time analytics
 complaintSchema.index({ assignedTo: 1 });
 complaintSchema.index({ createdAt: -1 });
 

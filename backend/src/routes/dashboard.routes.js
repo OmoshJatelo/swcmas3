@@ -11,5 +11,7 @@ router.get('/officer', dashboardController.officer);
 router.get('/landlord', dashboardController.landlord);
 router.get('/collector', dashboardController.collector);
 router.get('/resident', dashboardController.resident);
+router.get('/leaderboard', dashboardController.leaderboard);
+router.get('/kpi', dashboardController.kpi);
 
 module.exports = router;

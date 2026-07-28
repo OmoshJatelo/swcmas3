@@ -98,39 +98,95 @@ const detectCollectionFromSensor = async (collectionId) => {
   };
 };
 
-/** Check health of sensors */
+/** Check health of sensors — single aggregation instead of N+1 queries */
 const checkSensorHealth = async () => {
-  // active filter assuming isActive exists on Apartment, otherwise just get all
-  const activeApartments = await Apartment.find(); 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const healthResults = await Promise.all(
-    activeApartments.map(async (apt) => {
-      const latestReading = await getLatestReading(apt._id);
-      
-      let status = 'offline';
-      let lastSeenAt = null;
-      let fillLevelPercent = null;
+  // One aggregation to get the latest reading per apartment
+  const latestPerApartment = await SensorReading.aggregate([
+    { $sort: { recordedAt: -1 } },
+    {
+      $group: {
+        _id: '$apartment',
+        lastSeenAt: { $first: '$recordedAt' },
+        fillLevelPercent: { $first: '$fillLevelPercent' },
+        batteryVoltage: { $first: '$batteryVoltage' },
+      },
+    },
+  ]);
 
-      if (latestReading) {
-        lastSeenAt = latestReading.recordedAt;
-        fillLevelPercent = latestReading.fillLevelPercent;
-        if (latestReading.recordedAt > twentyFourHoursAgo) {
-          status = 'online';
-        }
-      }
+  // Build a lookup map: apartmentId → reading info
+  const readingMap = {};
+  for (const r of latestPerApartment) {
+    readingMap[r._id.toString()] = r;
+  }
 
-      return {
-        apartmentId: apt._id,
-        apartmentName: apt.name,
-        status,
-        lastSeenAt,
-        fillLevelPercent,
-      };
-    })
-  );
+  const activeApartments = await Apartment.find({ isActive: true }, { name: 1 }).lean();
+
+  const healthResults = activeApartments.map((apt) => {
+    const r = readingMap[apt._id.toString()];
+    const lastSeenAt = r ? r.lastSeenAt : null;
+    const fillLevelPercent = r ? r.fillLevelPercent : null;
+    const batteryVoltage = r ? r.batteryVoltage : null;
+    const status = r && lastSeenAt > twentyFourHoursAgo ? 'online' : 'offline';
+
+    return {
+      apartmentId: apt._id,
+      apartmentName: apt.name,
+      status,
+      lastSeenAt,
+      fillLevelPercent,
+      batteryVoltage,
+    };
+  });
 
   return healthResults;
+};
+
+/**
+ * Get daily-averaged fill level trend for an apartment.
+ * Returns [{date, avgFill, maxFill, minFill}] ready for a chart.
+ */
+const getDailyFillTrend = async (apartmentId, { days = 30 } = {}) => {
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const data = await SensorReading.aggregate([
+    {
+      $match: {
+        apartment: require('mongoose').Types.ObjectId.createFromHexString
+          ? require('mongoose').Types.ObjectId.createFromHexString(apartmentId.toString())
+          : new (require('mongoose').Types.ObjectId)(apartmentId.toString()),
+        recordedAt: { $gte: startDate },
+      },
+    },
+    {
+      $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$recordedAt' } },
+        avgFill: { $avg: '$fillLevelPercent' },
+        maxFill: { $max: '$fillLevelPercent' },
+        minFill: { $min: '$fillLevelPercent' },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // Fill in missing dates with null so charts render correctly
+  const trend = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const found = data.find((x) => x._id === dateStr);
+    trend.push({
+      date: dateStr,
+      avgFill: found ? Math.round(found.avgFill * 10) / 10 : null,
+      maxFill: found ? Math.round(found.maxFill * 10) / 10 : null,
+      minFill: found ? Math.round(found.minFill * 10) / 10 : null,
+      readingCount: found ? found.count : 0,
+    });
+  }
+  return trend;
 };
 
 module.exports = {
@@ -139,4 +195,5 @@ module.exports = {
   getReadingHistory,
   detectCollectionFromSensor,
   checkSensorHealth,
+  getDailyFillTrend,
 };

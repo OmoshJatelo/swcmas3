@@ -93,7 +93,7 @@ const runDetections = async () => {
   }
 
   // 4. Collection Gap Detection: Apartments without any completed collection in the last 7 days
-  const apartments = await Apartment.find({ isVerified: true });
+  const apartments = await Apartment.find({ isActive: true });
   for (const apt of apartments) {
     const recentCollection = await Collection.findOne({
       apartment: apt._id,

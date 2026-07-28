@@ -20,5 +20,6 @@ router.use(authorize('county_admin', 'county_officer'));
 router.get('/', reportController.getAll);
 router.get('/:id', reportController.getOne);
 router.post('/', validate(createReportSchema), reportController.create);
+router.get('/:id/export', reportController.exportCsv);
 
 module.exports = router;

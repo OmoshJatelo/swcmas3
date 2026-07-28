@@ -98,9 +98,21 @@ const getSensorHealth = async (req, res, next) => {
   }
 };
 
+const getDailyTrend = async (req, res, next) => {
+  try {
+    const { apartmentId } = req.params;
+    const days = parseInt(req.query.days, 10) || 30;
+    const trend = await sensorService.getDailyFillTrend(apartmentId, { days });
+    res.status(200).json(new ApiResponse({ data: trend }));
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   ingestReading,
   getLatestReading,
   getReadingHistory,
   getSensorHealth,
+  getDailyTrend,
 };

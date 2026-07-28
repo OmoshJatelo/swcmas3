@@ -144,7 +144,7 @@ The API base path is `/api/v1`.
 ### Frontend
 ```bash
 cd frontend
-npm run dev   # Vite dev server on http://localhost:5173
+npm run dev   # Vite dev server on http://localhost:5000
 ```
 The frontend proxies `/api` requests to the backend (see `vite.config.js`).
 

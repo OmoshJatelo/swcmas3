@@ -13,5 +13,6 @@ router.get('/complaints', mapController.complaints);
 router.get('/collections', mapController.collections);
 router.get('/violations', mapController.violations);
 router.get('/heatmap', mapController.heatmap);
+router.get('/compliance', mapController.compliance);
 
 module.exports = router;

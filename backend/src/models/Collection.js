@@ -75,6 +75,9 @@ collectionSchema.index({ wasteCollector: 1, scheduledDate: 1 });
 collectionSchema.index({ status: 1 });
 collectionSchema.index({ verificationStatus: 1 });
 collectionSchema.index({ scheduledDate: -1 });
+collectionSchema.index({ 'verificationScore.total': -1 }); // leaderboard sorting
+collectionSchema.index({ completedAt: -1 });               // gap detection
+collectionSchema.index({ wasteCollector: 1, verificationStatus: 1 }); // collector perf aggregation
 
 const Collection = mongoose.model('Collection', collectionSchema);
 module.exports = Collection;

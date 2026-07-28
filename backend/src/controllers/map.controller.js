@@ -51,4 +51,14 @@ const heatmap = async (req, res, next) => {
   }
 };
 
-module.exports = { apartments, complaints, collections, violations, heatmap };
+// GET /maps/compliance
+const compliance = async (req, res, next) => {
+  try {
+    const data = await mapService.getComplianceOverlay();
+    res.json(new ApiResponse({ data }));
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { apartments, complaints, collections, violations, heatmap, compliance };

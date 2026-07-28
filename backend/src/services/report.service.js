@@ -197,4 +197,64 @@ const getReport = async (id) => {
   return report;
 };
 
-module.exports = { generateReport, listReports, getReport };
+/**
+ * Export a report as CSV.
+ * Returns an object with { filename, csv } for the controller to stream.
+ */
+const exportReportCsv = async (id) => {
+  const report = await getReport(id);
+  const { Parser } = require('json2csv');
+  const sections = [];
+
+  // Section 1: Summary
+  const summary = [
+    {
+      metric: 'Total Collections',
+      value: report.data.totalCollections,
+    },
+    { metric: 'Completed Collections', value: report.data.completedCollections },
+    { metric: 'Verified Collections', value: report.data.verifiedCollections },
+    { metric: 'Disputed Collections', value: report.data.disputedCollections },
+    { metric: 'Total Complaints', value: report.data.totalComplaints },
+    { metric: 'Resolved Complaints', value: report.data.resolvedComplaints },
+  ];
+  const summaryParser = new Parser({ fields: ['metric', 'value'] });
+  sections.push('=== SUMMARY ===');
+  sections.push(summaryParser.parse(summary));
+
+  // Section 2: Collector Performance
+  if (report.data.collectorPerformance && report.data.collectorPerformance.length > 0) {
+    const perfParser = new Parser({
+      fields: ['name', 'totalCollections', 'verified', 'averageScore'],
+    });
+    sections.push('');
+    sections.push('=== COLLECTOR PERFORMANCE ===');
+    sections.push(perfParser.parse(report.data.collectorPerformance));
+  }
+
+  // Section 3: Landlord Compliance
+  if (report.data.landlordCompliance && report.data.landlordCompliance.length > 0) {
+    const landlordFields = ['name', 'totalVerifications', 'confirmed', 'complianceRate'];
+    const landlordParser = new Parser({ fields: landlordFields });
+    sections.push('');
+    sections.push('=== LANDLORD COMPLIANCE ===');
+    sections.push(landlordParser.parse(report.data.landlordCompliance));
+  }
+
+  // Section 4: High-Risk Areas
+  if (report.data.highRiskAreas && report.data.highRiskAreas.length > 0) {
+    const riskParser = new Parser({
+      fields: ['name', 'complaintCount', 'riskScore'],
+    });
+    sections.push('');
+    sections.push('=== HIGH RISK AREAS ===');
+    sections.push(riskParser.parse(report.data.highRiskAreas));
+  }
+
+  const periodStr = `${new Date(report.period.start).toISOString().split('T')[0]}_${new Date(report.period.end).toISOString().split('T')[0]}`;
+  const filename = `report_${report.type}_${periodStr}.csv`;
+
+  return { filename, csv: sections.join('\n') };
+};
+
+module.exports = { generateReport, listReports, getReport, exportReportCsv };

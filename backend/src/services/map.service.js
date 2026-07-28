@@ -157,10 +157,81 @@ const getHeatmapData = async () => {
   return heatPoints;
 };
 
+/** Compliance overlay — per-apartment compliance rate with coordinates for map choropleth */
+const getComplianceOverlay = async () => {
+  const data = await Apartment.aggregate([
+    { $match: { isActive: true } },
+    {
+      $lookup: {
+        from: 'collections',
+        localField: '_id',
+        foreignField: 'apartment',
+        as: 'cols',
+      },
+    },
+    {
+      $addFields: {
+        totalCols: { $size: '$cols' },
+        verifiedCols: {
+          $size: {
+            $filter: {
+              input: '$cols',
+              cond: { $eq: ['$$this.verificationStatus', 'verified'] },
+            },
+          },
+        },
+        complianceRate: {
+          $cond: [
+            { $eq: [{ $size: '$cols' }, 0] },
+            0,
+            {
+              $round: [
+                { $multiply: [{ $divide: [{ $size: { $filter: { input: '$cols', cond: { $eq: ['$$this.verificationStatus', 'verified'] } } } }, { $size: '$cols' }] }, 100] },
+                1,
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        address: 1,
+        city: 1,
+        location: 1,
+        complianceRate: 1,
+        totalCols: 1,
+        verifiedCols: 1,
+      },
+    },
+  ]);
+
+  // Return as GeoJSON FeatureCollection for map compatibility
+  const features = data
+    .filter((apt) => apt.location && apt.location.coordinates)
+    .map((apt) => ({
+      type: 'Feature',
+      geometry: apt.location,
+      properties: {
+        id: apt._id,
+        name: apt.name,
+        address: apt.address,
+        city: apt.city,
+        complianceRate: apt.complianceRate,
+        totalCollections: apt.totalCols,
+        verifiedCollections: apt.verifiedCols,
+      },
+    }));
+
+  return { type: 'FeatureCollection', features };
+};
+
 module.exports = {
   getApartmentsGeo,
   getComplaintsGeo,
   getCollectionsGeo,
   getViolationsGeo,
-  getHeatmapData
+  getHeatmapData,
+  getComplianceOverlay,
 };
