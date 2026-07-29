@@ -1,4 +1,4 @@
-# AI‑Powered Smart Waste Compliance, Monitoring and Assessment System (SWCMAS)
+# AI‑Powered Smart Waste Collection, Monitoring and Assessment System (SWCMAS)
 
 ## Project Overview
 SWCMAS is a **full‑stack, production‑ready** web application that enables county governments to **monitor, enforce, and analyse waste‑management operations**.  It combines:
