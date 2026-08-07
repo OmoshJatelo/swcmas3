@@ -256,4 +256,26 @@
   .table-row-hover {
     @apply hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors duration-100;
   }
+
+  /* ─── Entry Animations ─────────────────────────────────────────── */
+  @keyframes popUp {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-pop-in {
+    animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .stagger-1 { animation-delay: 0.04s; }
+  .stagger-2 { animation-delay: 0.08s; }
+  .stagger-3 { animation-delay: 0.12s; }
+  .stagger-4 { animation-delay: 0.16s; }
+  .stagger-5 { animation-delay: 0.20s; }
 }

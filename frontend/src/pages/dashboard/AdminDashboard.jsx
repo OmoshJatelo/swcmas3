@@ -63,11 +63,11 @@ const anomalyCols = [
 /* ─────────────────────────────────────────────────────────
    Sensor Health card — inline mini component
 ───────────────────────────────────────────────────────── */
-const SensorHealthCard = memo(({ health }) => {
+const SensorHealthCard = memo(({ health, className = '' }) => {
   const onlinePct = health.total > 0 ? Math.round((health.online / health.total) * 100) : 0;
 
   return (
-    <div className="glass-panel p-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+    <div className={`glass-panel p-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-1 ${className}`}>
       <div className="flex items-start justify-between mb-4">
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sensor Health</p>
         <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10">
@@ -207,6 +207,7 @@ const AdminDashboard = () => {
               icon={Users}
               variant="blue"
               subtitle="Registered accounts"
+              className="animate-pop-in stagger-1"
             />
             <StatCard
               title="Registered Properties"
@@ -214,6 +215,7 @@ const AdminDashboard = () => {
               icon={Building2}
               variant="purple"
               subtitle="Active landlords"
+              className="animate-pop-in stagger-2"
             />
             <StatCard
               title="Total Collections"
@@ -221,6 +223,7 @@ const AdminDashboard = () => {
               icon={Truck}
               variant="green"
               subtitle="All time"
+              className="animate-pop-in stagger-3"
             />
             <StatCard
               title="Total Complaints"
@@ -228,8 +231,9 @@ const AdminDashboard = () => {
               icon={FileWarning}
               variant="amber"
               subtitle="Filed by residents"
+              className="animate-pop-in stagger-4"
             />
-            <SensorHealthCard health={sensorHealth} />
+            <SensorHealthCard health={sensorHealth} className="animate-pop-in stagger-5" />
           </>
         )}
       </div>
