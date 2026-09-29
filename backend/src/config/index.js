@@ -34,6 +34,17 @@ const config = {
     apiUrl: process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1',
   },
 
+  nvidia: {
+    apiKey: process.env.NVIDIA_API_KEY,
+    apiUrl: process.env.NVIDIA_API_URL || 'https://integrate.api.nvidia.com/v1',
+    defaultModel: process.env.NVIDIA_DEFAULT_MODEL || 'meta/llama-3.1-70b-instruct',
+    // Per-use-case model overrides (optional)
+    modelClassify: process.env.NVIDIA_MODEL_CLASSIFY,
+    modelReport: process.env.NVIDIA_MODEL_REPORT,
+    modelPlaybook: process.env.NVIDIA_MODEL_PLAYBOOK,
+    modelCompliance: process.env.NVIDIA_MODEL_COMPLIANCE,
+  },
+
   smtp: {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT, 10) || 587,

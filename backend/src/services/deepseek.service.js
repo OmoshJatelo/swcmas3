@@ -6,12 +6,29 @@ const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
 
 /**
- * Call DeepSeek chat completions API with retry logic.
- * Returns the assistant message content as a string.
+ * Determine active provider at call time (not module load time) for test isolation.
+ * Uses NVIDIA if configured, otherwise falls back to DeepSeek.
  */
-const callDeepSeek = async (messages, maxTokens = 500) => {
-  if (!config.deepseek.apiKey || config.deepseek.apiKey === 'your-deepseek-api-key') {
-    logger.warn('DeepSeek API key not configured – returning null');
+const getActiveProvider = () => {
+  const nvidiaKey = config.nvidia?.apiKey;
+  return (nvidiaKey && nvidiaKey !== 'your-nvidia-api-key') ? 'nvidia' : 'deepseek';
+};
+
+/**
+ * Unified LLM caller supporting both NVIDIA Build and DeepSeek (OpenAI-compatible APIs).
+ * @param {Array} messages - OpenAI-format messages
+ * @param {number} maxTokens - Max tokens for response
+ * @param {Object} options - { provider, model, temperature, responseFormat }
+ * @returns {Promise<string|null>} Assistant message content or null on failure
+ */
+const callLLM = async (messages, maxTokens = 500, options = {}) => {
+  const provider = options.provider || getActiveProvider();
+  const model = options.model || (provider === 'nvidia' ? config.nvidia.defaultModel : 'deepseek-chat');
+  const apiConfig = provider === 'nvidia' ? config.nvidia : config.deepseek;
+  const apiUrl = provider === 'nvidia' ? config.nvidia.apiUrl : config.deepseek.apiUrl;
+
+  if (!apiConfig.apiKey || apiConfig.apiKey === `your-${provider}-api-key`) {
+    logger.warn('%s API key not configured – returning null', provider.toUpperCase());
     return null;
   }
 
@@ -19,17 +36,17 @@ const callDeepSeek = async (messages, maxTokens = 500) => {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await axios.post(
-        `${config.deepseek.apiUrl}/chat/completions`,
+        `${apiUrl}/chat/completions`,
         {
-          model: 'deepseek-chat',
+          model,
           messages,
           max_tokens: maxTokens,
-          temperature: 0.3,
-          response_format: { type: 'json_object' },
+          temperature: options.temperature ?? 0.3,
+          response_format: options.responseFormat ?? { type: 'json_object' },
         },
         {
           headers: {
-            Authorization: `Bearer ${config.deepseek.apiKey}`,
+            Authorization: `Bearer ${apiConfig.apiKey}`,
             'Content-Type': 'application/json',
           },
           timeout: 30000,
@@ -38,13 +55,18 @@ const callDeepSeek = async (messages, maxTokens = 500) => {
       return response.data.choices?.[0]?.message?.content || '';
     } catch (err) {
       lastError = err;
-      logger.warn('DeepSeek API attempt %d failed: %s', attempt + 1, err.message);
+      const status = err.response?.status;
+      if (provider === 'nvidia' && (status === 429 || status === 402)) {
+        logger.warn('NVIDIA API rate limited / quota exceeded: %s', err.message);
+      } else {
+        logger.warn('%s API attempt %d failed: %s', provider.toUpperCase(), attempt + 1, err.message);
+      }
       if (attempt < MAX_RETRIES) {
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
       }
     }
   }
-  logger.error('DeepSeek API exhausted retries: %s', lastError?.message);
+  logger.error('%s API exhausted retries: %s', provider.toUpperCase(), lastError?.message);
   return null;
 };
 
@@ -116,10 +138,14 @@ Complaint Text: "${complaintText}"
 
 Provide your analysis as JSON.`;
 
-  const raw = await callDeepSeek([
-    { role: 'system', content: COMPLAINT_SYSTEM_PROMPT },
-    { role: 'user', content: userPrompt },
-  ]);
+  const raw = await callLLM(
+    [
+      { role: 'system', content: COMPLAINT_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    undefined,
+    { model: config.nvidia.modelClassify || config.nvidia.defaultModel }
+  );
 
   const parsed = safeParseJSON(raw);
   if (!parsed) return fallback;
@@ -177,12 +203,13 @@ Statistics:
 
 Provide your analysis as JSON.`;
 
-  const raw = await callDeepSeek(
+  const raw = await callLLM(
     [
       { role: 'system', content: REPORT_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ],
-    800
+    800,
+    { model: config.nvidia.modelReport || config.nvidia.defaultModel }
   );
 
   const parsed = safeParseJSON(raw);
@@ -235,10 +262,14 @@ Repeat Offender Apartments: ${JSON.stringify(data.repeatOffenders || [])}
 
 Provide your analysis as JSON.`;
 
-  const raw = await callDeepSeek([
-    { role: 'system', content: COMPLIANCE_SYSTEM_PROMPT },
-    { role: 'user', content: userPrompt },
-  ]);
+  const raw = await callLLM(
+    [
+      { role: 'system', content: COMPLIANCE_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    undefined,
+    { model: config.nvidia.modelCompliance || config.nvidia.defaultModel }
+  );
 
   const parsed = safeParseJSON(raw);
   if (!parsed) return fallback;
@@ -309,10 +340,14 @@ Details: ${JSON.stringify(alert.details || {})}
 
 Provide your analysis as JSON.`;
 
-  const raw = await callDeepSeek([
-    { role: 'system', content: PLAYBOOK_SYSTEM_PROMPT },
-    { role: 'user', content: userPrompt },
-  ], 600);
+  const raw = await callLLM(
+    [
+      { role: 'system', content: PLAYBOOK_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    600,
+    { model: config.nvidia.modelPlaybook || config.nvidia.defaultModel }
+  );
 
   const parsed = safeParseJSON(raw);
   if (!parsed) return fallback;
@@ -332,6 +367,7 @@ module.exports = {
   getComplianceInsights,
   generateAnomalyPlaybook,
   analyzeText,
-  callDeepSeek,
+  callDeepSeek: callLLM, // backward compat alias
+  callLLM,               // new unified caller
   safeParseJSON,
 };

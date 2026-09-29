@@ -1,9 +1,3 @@
-const deepseekService = require('../src/services/deepseek.service');
-
-jest.mock('../src/config', () => ({
-  deepseek: { apiKey: 'test', apiUrl: 'test' }
-}));
-jest.mock('axios');
 jest.mock('../src/utils/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
@@ -11,13 +5,37 @@ jest.mock('../src/utils/logger', () => ({
   debug: jest.fn(),
 }));
 
-describe('DeepSeek Service - Anomaly Playbook', () => {
+describe('DeepSeek Service - Anomaly Playbook (NVIDIA Provider)', () => {
+  let deepseekService;
+  let axios;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
+    
+    // Re-mock config for each test run
+    jest.doMock('../src/config', () => ({
+      deepseek: { apiKey: 'test', apiUrl: 'test' },
+      nvidia: { 
+        apiKey: 'nvapi-test-key', 
+        apiUrl: 'https://integrate.api.nvidia.com/v1',
+        defaultModel: 'gpt-oss-20b',
+        modelPlaybook: 'gpt-oss-20b',
+      }
+    }), { virtual: true });
+    
+    // Re-mock axios
+    jest.doMock('axios', () => ({
+      post: jest.fn(),
+      defaults: {}
+    }), { virtual: true });
+    
+    deepseekService = require('../src/services/deepseek.service');
+    axios = require('axios');
   });
 
   describe('generateAnomalyPlaybook', () => {
-    it('should generate playbook for anomaly alert', async () => {
+    it('generates playbook for anomaly alert via NVIDIA', async () => {
       const mockAlert = {
         type: 'collection_gap',
         severity: 'high',
@@ -42,13 +60,8 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
         escalationPath: 'Escalate to County Officer if not resolved in 24 hours'
       });
 
-      // Since generateAnomalyPlaybook uses callDeepSeek internally,
-      // we test it by calling the actual function with mocked axios
-      const axios = require('axios');
       axios.post.mockResolvedValue({
-        data: {
-          choices: [{ message: { content: mockLLMResponse } }]
-        }
+        data: { choices: [{ message: { content: mockLLMResponse } }] }
       });
 
       const result = await deepseekService.generateAnomalyPlaybook(mockAlert);
@@ -58,9 +71,21 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
       expect(result.preventionTips).toHaveLength(2);
       expect(result.estimatedResolutionTime).toBe('2-4 hours');
       expect(result.escalationPath).toContain('County Officer');
+      
+      // Verify NVIDIA endpoint called
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://integrate.api.nvidia.com/v1/chat/completions',
+        expect.objectContaining({
+          model: 'gpt-oss-20b',
+          response_format: { type: 'json_object' }
+        }),
+        expect.objectContaining({
+          headers: expect.objectContaining({ Authorization: 'Bearer nvapi-test-key' })
+        })
+      );
     });
 
-    it('should return fallback when LLM fails', async () => {
+    it('returns fallback when LLM fails', async () => {
       const mockAlert = {
         type: 'sensor_tamper',
         severity: 'high',
@@ -70,7 +95,6 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
         details: { delta: 45 }
       };
 
-      const axios = require('axios');
       axios.post.mockRejectedValue(new Error('API timeout'));
 
       const result = await deepseekService.generateAnomalyPlaybook(mockAlert);
@@ -81,7 +105,7 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
       expect(result.escalationPath).toContain('County Officer');
     });
 
-    it('should handle malformed JSON response', async () => {
+    it('handles malformed JSON response', async () => {
       const mockAlert = {
         type: 'repeated_complaints',
         severity: 'medium',
@@ -91,11 +115,8 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
         details: { complaintCount: 5 }
       };
 
-      const axios = require('axios');
       axios.post.mockResolvedValue({
-        data: {
-          choices: [{ message: { content: 'not valid json' } }]
-        }
+        data: { choices: [{ message: { content: 'not valid json' } }] }
       });
 
       const result = await deepseekService.generateAnomalyPlaybook(mockAlert);
@@ -104,7 +125,7 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
       expect(Array.isArray(result.immediateSteps)).toBe(true);
     });
 
-    it('should handle partial LLM response', async () => {
+    it('handles partial LLM response (merges with fallback)', async () => {
       const mockAlert = {
         type: 'collector_performance',
         severity: 'critical',
@@ -117,14 +138,10 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
       const partialResponse = JSON.stringify({
         rootCause: 'Collector not following verification protocol',
         immediateSteps: ['Review recent disputed collections'],
-        // missing preventionTips, estimatedResolutionTime, escalationPath
       });
 
-      const axios = require('axios');
       axios.post.mockResolvedValue({
-        data: {
-          choices: [{ message: { content: partialResponse } }]
-        }
+        data: { choices: [{ message: { content: partialResponse } }] }
       });
 
       const result = await deepseekService.generateAnomalyPlaybook(mockAlert);
@@ -141,22 +158,22 @@ describe('DeepSeek Service - Anomaly Playbook', () => {
   });
 
   describe('safeParseJSON', () => {
-    it('should parse valid JSON', () => {
+    it('parses valid JSON', () => {
       const result = deepseekService.safeParseJSON('{"key": "value"}');
       expect(result).toEqual({ key: 'value' });
     });
 
-    it('should extract JSON from markdown code fences', () => {
+    it('extracts JSON from markdown code fences', () => {
       const result = deepseekService.safeParseJSON('```json\n{"key": "value"}\n```');
       expect(result).toEqual({ key: 'value' });
     });
 
-    it('should extract first JSON object from text', () => {
+    it('extracts first JSON object from text', () => {
       const result = deepseekService.safeParseJSON('Here is the result: {"key": "value"} and more text');
       expect(result).toEqual({ key: 'value' });
     });
 
-    it('should return null for invalid input', () => {
+    it('returns null for invalid input', () => {
       expect(deepseekService.safeParseJSON(null)).toBeNull();
       expect(deepseekService.safeParseJSON('')).toBeNull();
       expect(deepseekService.safeParseJSON('not json')).toBeNull();
